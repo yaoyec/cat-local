@@ -1,13 +1,17 @@
-﻿{
+{
   "name": "maomao-backend",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test --test-concurrency=1 test/integration/*.test.js"
   },
   "dependencies": {
     "express": "^5.1.0",
     "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1"
   }
 }

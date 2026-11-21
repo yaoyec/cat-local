@@ -1,0 +1,1077 @@
+{
+  "schemaVersion": 1,
+  "phase": "Phase 1 Style candidates",
+  "generatedAt": "2026-11-19T06:50:22.753428+00:00",
+  "scope": "candidate review package only",
+  "runtimeConnected": false,
+  "originality": "全部图像由 Pillow 程序绘制，无外部图片素材。",
+  "notices": [
+    "候选稿未接线运行时，不应直接复制覆盖生产素材。",
+    "已有真实 cleric、axeEnhanceMaster1、mageKitty1 素材优先，严禁覆盖。",
+    "所有动画 GIF 仅供确认；确认后转换为带 alpha 的 VP9 WebM，再按目标逻辑路径接入。",
+    "yixiao 当前采用中性纪念抽象方向，名称、叙事与最终视觉均待产品定义。"
+  ],
+  "reviewRules": {
+    "animationReview": "查看 GIF 循环；联系表只展示首帧",
+    "approvalNextStep": "冻结 key 与构图后，由产品另开运行时接线任务",
+    "forbidOverwrite": [
+      "cleric",
+      "axeEnhanceMaster1",
+      "mageKitty1"
+    ]
+  },
+  "expectedAssetCount": 50,
+  "assets": [
+    {
+      "key": "cute_cat_1",
+      "category": "chatBubble",
+      "variant": "runtime",
+      "nameZh": "闲趣小猫",
+      "descriptionZh": "奶油薄荷色的爪印气泡，像猫咪趴在窗边说悄悄话。",
+      "candidatePath": "chat-bubbles/runtime/cute_cat_1.png",
+      "spec": {
+        "width": 640,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/cute_cat_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "cute_cat_1",
+      "category": "chatBubble",
+      "variant": "preview",
+      "nameZh": "闲趣小猫",
+      "descriptionZh": "奶油薄荷色的爪印气泡，像猫咪趴在窗边说悄悄话。",
+      "candidatePath": "chat-bubbles/preview/cute_cat_1.png",
+      "spec": {
+        "width": 800,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "/static/images/preview/chatBubble_cute_cat_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "cute_cat_2",
+      "category": "chatBubble",
+      "variant": "runtime",
+      "nameZh": "猫咪乐园",
+      "descriptionZh": "珊瑚与晴蓝组成的游乐园气泡，缀有彩旗和毛线球。",
+      "candidatePath": "chat-bubbles/runtime/cute_cat_2.png",
+      "spec": {
+        "width": 640,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/cute_cat_2.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "cute_cat_2",
+      "category": "chatBubble",
+      "variant": "preview",
+      "nameZh": "猫咪乐园",
+      "descriptionZh": "珊瑚与晴蓝组成的游乐园气泡，缀有彩旗和毛线球。",
+      "candidatePath": "chat-bubbles/preview/cute_cat_2.png",
+      "spec": {
+        "width": 800,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "/static/images/preview/chatBubble_cute_cat_2.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "dark_mag_1",
+      "category": "chatBubble",
+      "variant": "runtime",
+      "nameZh": "暗月魔法",
+      "descriptionZh": "深靛月色包裹紫晶符文，适合神秘而安静的猫咪对白。",
+      "candidatePath": "chat-bubbles/runtime/dark_mag_1.png",
+      "spec": {
+        "width": 640,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/dark_mag_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "dark_mag_1",
+      "category": "chatBubble",
+      "variant": "preview",
+      "nameZh": "暗月魔法",
+      "descriptionZh": "深靛月色包裹紫晶符文，适合神秘而安静的猫咪对白。",
+      "candidatePath": "chat-bubbles/preview/dark_mag_1.png",
+      "spec": {
+        "width": 800,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "/static/images/preview/chatBubble_dark_mag_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "kitty_1",
+      "category": "chatBubble",
+      "variant": "runtime",
+      "nameZh": "蝶结萌喵",
+      "descriptionZh": "草莓奶霜与蝴蝶结围成软萌对话框，轻甜但保留清晰阅读区。",
+      "candidatePath": "chat-bubbles/runtime/kitty_1.png",
+      "spec": {
+        "width": 640,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/kitty_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "kitty_1",
+      "category": "chatBubble",
+      "variant": "preview",
+      "nameZh": "蝶结萌喵",
+      "descriptionZh": "草莓奶霜与蝴蝶结围成软萌对话框，轻甜但保留清晰阅读区。",
+      "candidatePath": "chat-bubbles/preview/kitty_1.png",
+      "spec": {
+        "width": 800,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "/static/images/preview/chatBubble_kitty_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "moon_1",
+      "category": "chatBubble",
+      "variant": "runtime",
+      "nameZh": "月之魔咒",
+      "descriptionZh": "银蓝新月与云朵守在气泡边缘，营造柔和的夜间聊天氛围。",
+      "candidatePath": "chat-bubbles/runtime/moon_1.png",
+      "spec": {
+        "width": 640,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/moon_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "moon_1",
+      "category": "chatBubble",
+      "variant": "preview",
+      "nameZh": "月之魔咒",
+      "descriptionZh": "银蓝新月与云朵守在气泡边缘，营造柔和的夜间聊天氛围。",
+      "candidatePath": "chat-bubbles/preview/moon_1.png",
+      "spec": {
+        "width": 800,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "/static/images/preview/chatBubble_moon_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "ninja_cat_1",
+      "category": "chatBubble",
+      "variant": "runtime",
+      "nameZh": "假面猫猫",
+      "descriptionZh": "墨色忍装、青蓝刀光与赤红结绳构成利落的忍猫气泡。",
+      "candidatePath": "chat-bubbles/runtime/ninja_cat_1.png",
+      "spec": {
+        "width": 640,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/ninja_cat_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "ninja_cat_1",
+      "category": "chatBubble",
+      "variant": "preview",
+      "nameZh": "假面猫猫",
+      "descriptionZh": "墨色忍装、青蓝刀光与赤红结绳构成利落的忍猫气泡。",
+      "candidatePath": "chat-bubbles/preview/ninja_cat_1.png",
+      "spec": {
+        "width": 800,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "/static/images/preview/chatBubble_ninja_cat_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "star_1",
+      "category": "chatBubble",
+      "variant": "runtime",
+      "nameZh": "星辉",
+      "descriptionZh": "深空蓝上的金色星轨与猫爪星座，让每条消息像小小许愿。",
+      "candidatePath": "chat-bubbles/runtime/star_1.png",
+      "spec": {
+        "width": 640,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/star_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "star_1",
+      "category": "chatBubble",
+      "variant": "preview",
+      "nameZh": "星辉",
+      "descriptionZh": "深空蓝上的金色星轨与猫爪星座，让每条消息像小小许愿。",
+      "candidatePath": "chat-bubbles/preview/star_1.png",
+      "spec": {
+        "width": 800,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "/static/images/preview/chatBubble_star_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "wangzong",
+      "category": "profileBackground",
+      "variant": "runtime-candidate",
+      "nameZh": "王总·金牌猫掌事务所",
+      "descriptionZh": "海军蓝与金色构成的猫咪事务所夜景，沉稳、可靠又保留俏皮爪印。",
+      "candidatePath": "profile-backgrounds/wangzong.png",
+      "spec": {
+        "width": 1200,
+        "height": 720,
+        "format": "PNG",
+        "alphaRequired": false
+      },
+      "targetLogicalPath": "/static/images/wangzong_profile_bg_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "yixiao",
+      "category": "profileBackground",
+      "variant": "runtime-candidate",
+      "nameZh": "微光纪念（中性抽象候选）",
+      "descriptionZh": "以雾蓝、暖灰和微光轨迹表达安静纪念，不指向具体人物或事件；待产品定义后再定名与叙事。",
+      "candidatePath": "profile-backgrounds/yixiao.png",
+      "spec": {
+        "width": 1200,
+        "height": 720,
+        "format": "PNG",
+        "alphaRequired": false
+      },
+      "targetLogicalPath": "/static/images/yixiao_profile_bg_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "productDefinitionStatus": "待产品定义"
+    },
+    {
+      "key": "fishing_1",
+      "category": "profileBackground",
+      "variant": "runtime-candidate",
+      "nameZh": "湖畔垂钓的猫咪",
+      "descriptionZh": "清晨薄雾、木栈桥与守候浮漂的渔猫，传达从容闲趣。",
+      "candidatePath": "profile-backgrounds/fishing_1.png",
+      "spec": {
+        "width": 1200,
+        "height": 720,
+        "format": "PNG",
+        "alphaRequired": false
+      },
+      "targetLogicalPath": "/static/images/fishing_profile_bg_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "night_ninja_1",
+      "category": "profileBackground",
+      "variant": "runtime-candidate",
+      "nameZh": "月下的浪人",
+      "descriptionZh": "紫蓝屋脊、圆月与潜行忍猫组成的夜行剪影，冷静而敏捷。",
+      "candidatePath": "profile-backgrounds/night_ninja_1.png",
+      "spec": {
+        "width": 1200,
+        "height": 720,
+        "format": "PNG",
+        "alphaRequired": false
+      },
+      "targetLogicalPath": "/static/images/night_ninja_profile_bg_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "cute_kitty_1",
+      "category": "profileBackground",
+      "variant": "runtime-candidate",
+      "nameZh": "玩耍中的小猫咪",
+      "descriptionZh": "棉花糖云、积木与毛线球铺成的粉彩乐园，轻快又治愈。",
+      "candidatePath": "profile-backgrounds/cute_kitty_1.png",
+      "spec": {
+        "width": 1200,
+        "height": 720,
+        "format": "PNG",
+        "alphaRequired": false
+      },
+      "targetLogicalPath": "/static/images/cute_profile_bg_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "warrior",
+      "category": "battleStyle",
+      "variant": "transparent-avatar",
+      "nameZh": "战士喵",
+      "descriptionZh": "举起赤焰爪盾守住同伴的橘猫先锋，强调力量与保护。",
+      "candidatePath": "battle/avatars/warrior.png",
+      "spec": {
+        "width": 550,
+        "height": 550,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/avatarBattleUnitCard_Warrior.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "warrior",
+      "category": "battleStyle",
+      "variant": "scene",
+      "nameZh": "战士喵",
+      "descriptionZh": "举起赤焰爪盾守住同伴的橘猫先锋，强调力量与保护。",
+      "candidatePath": "battle/scenes/warrior.png",
+      "spec": {
+        "width": 1152,
+        "height": 864,
+        "format": "PNG",
+        "alphaRequired": false
+      },
+      "targetLogicalPath": "assets/png/battleUnitCard_warrior.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "magical",
+      "category": "battleStyle",
+      "variant": "transparent-avatar",
+      "nameZh": "魔法师喵",
+      "descriptionZh": "操纵星轨与青蓝法辉的紫猫术士，强调奥术爆发与奇想。",
+      "candidatePath": "battle/avatars/magical.png",
+      "spec": {
+        "width": 550,
+        "height": 550,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/avatarBattleUnitCard_Magical.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "magical",
+      "category": "battleStyle",
+      "variant": "scene",
+      "nameZh": "魔法师喵",
+      "descriptionZh": "操纵星轨与青蓝法辉的紫猫术士，强调奥术爆发与奇想。",
+      "candidatePath": "battle/scenes/magical.png",
+      "spec": {
+        "width": 1152,
+        "height": 864,
+        "format": "PNG",
+        "alphaRequired": false
+      },
+      "targetLogicalPath": "assets/png/battleUnitCard_magical.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "cleric",
+      "category": "battleStyle",
+      "variant": "transparent-avatar",
+      "nameZh": "牧师喵",
+      "descriptionZh": "以金色爪环和薄荷治愈光守护队伍的奶油猫；现有真实素材优先。",
+      "candidatePath": "battle/avatars/cleric.png",
+      "spec": {
+        "width": 550,
+        "height": 550,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/avatarBattleUnitCard_Cleric.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "realAssetPriority": true,
+      "doNotOverwriteExisting": true
+    },
+    {
+      "key": "cleric",
+      "category": "battleStyle",
+      "variant": "scene",
+      "nameZh": "牧师喵",
+      "descriptionZh": "以金色爪环和薄荷治愈光守护队伍的奶油猫；现有真实素材优先。",
+      "candidatePath": "battle/scenes/cleric.png",
+      "spec": {
+        "width": 1152,
+        "height": 864,
+        "format": "PNG",
+        "alphaRequired": false
+      },
+      "targetLogicalPath": "assets/png/battleUnitCard_cleric.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "realAssetPriority": true,
+      "doNotOverwriteExisting": true
+    },
+    {
+      "key": "ninja",
+      "category": "battleStyle",
+      "variant": "transparent-avatar",
+      "nameZh": "杀手喵",
+      "descriptionZh": "在月影中挥出青色刃光的灰蓝忍猫，强调速度与隐匿。",
+      "candidatePath": "battle/avatars/ninja.png",
+      "spec": {
+        "width": 550,
+        "height": 550,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/avatarBattleUnitCard_Ninja.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "ninja",
+      "category": "battleStyle",
+      "variant": "scene",
+      "nameZh": "杀手喵",
+      "descriptionZh": "在月影中挥出青色刃光的灰蓝忍猫，强调速度与隐匿。",
+      "candidatePath": "battle/scenes/ninja.png",
+      "spec": {
+        "width": 1152,
+        "height": 864,
+        "format": "PNG",
+        "alphaRequired": false
+      },
+      "targetLogicalPath": "assets/png/battleUnitCard_ninja.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme"
+    },
+    {
+      "key": "kitty_head_1",
+      "category": "avatarBorder",
+      "variant": "static",
+      "nameZh": "铃动猫咪",
+      "descriptionZh": "猫耳、铃铛与薄荷爪印围成的轻快头像框。",
+      "candidatePath": "avatar-borders/static/kitty_head_1.png",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/kitty_head_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      }
+    },
+    {
+      "key": "bunny_1",
+      "category": "avatarBorder",
+      "variant": "static",
+      "nameZh": "可爱小兔叽",
+      "descriptionZh": "长耳与胡萝卜色花瓣组成的软萌兔猫联名框。",
+      "candidatePath": "avatar-borders/static/bunny_1.png",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/bunny_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      }
+    },
+    {
+      "key": "ghostBladeNebula",
+      "category": "avatarBorder",
+      "variant": "static",
+      "nameZh": "幽冥毒刃",
+      "descriptionZh": "幽紫星云与青色刃片交错，呈现危险的猫影刀光。",
+      "candidatePath": "avatar-borders/static/ghostBladeNebula.png",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/ghostBladeNebula.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      }
+    },
+    {
+      "key": "cuteParty",
+      "category": "avatarBorder",
+      "variant": "static",
+      "nameZh": "萌宠派对",
+      "descriptionZh": "彩旗、气球与爪印撒花环绕头像，适合庆祝时刻。",
+      "candidatePath": "avatar-borders/static/cuteParty.png",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/cuteParty.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      }
+    },
+    {
+      "key": "kittyRing2",
+      "category": "avatarBorder",
+      "variant": "static",
+      "nameZh": "萌铃喵喵",
+      "descriptionZh": "双层奶油铃环配上小猫耳，细腻又醒目。",
+      "candidatePath": "avatar-borders/static/kittyRing2.png",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/kitty_ring_2.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      }
+    },
+    {
+      "key": "20260203potato",
+      "category": "avatarBorder",
+      "variant": "static",
+      "nameZh": "新鲜的薯条",
+      "descriptionZh": "金黄薯条、番茄红与俏皮爪印组成的零食主题框。",
+      "candidatePath": "avatar-borders/static/20260203potato.png",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/20260203potato.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      }
+    },
+    {
+      "key": "meowQuest",
+      "category": "avatarBorder",
+      "variant": "static",
+      "nameZh": "喵将征途",
+      "descriptionZh": "翡翠罗盘、皮革盾牌与远行徽记构成冒险框。",
+      "candidatePath": "avatar-borders/static/meowQuest.png",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/meowQuest.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      }
+    },
+    {
+      "key": "privateDetective",
+      "category": "avatarBorder",
+      "variant": "static",
+      "nameZh": "私家侦探",
+      "descriptionZh": "黄铜放大镜、深棕帽檐与线索纸片环绕猫探头像。",
+      "candidatePath": "avatar-borders/static/privateDetective.png",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/privateDetective.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      }
+    },
+    {
+      "key": "catVillageOverseer_1",
+      "category": "avatarBorder",
+      "variant": "static",
+      "nameZh": "猫猫村监管者",
+      "descriptionZh": "青瓦、木牌和新叶组成的村落巡查徽框。",
+      "candidatePath": "avatar-borders/static/catVillageOverseer_1.png",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/catVillageOverseer_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      }
+    },
+    {
+      "key": "catVillageOverseer_2",
+      "category": "avatarBorder",
+      "variant": "static",
+      "nameZh": "猫猫村风气监管员",
+      "descriptionZh": "朱红印章、卷册与端正爪徽构成的监管主题框。",
+      "candidatePath": "avatar-borders/static/catVillageOverseer_2.png",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/catVillageOverseer_2.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      }
+    },
+    {
+      "key": "SpringFestivalLuckyCat2026",
+      "category": "avatarBorder",
+      "variant": "static",
+      "nameZh": "新春招财猫",
+      "descriptionZh": "红金灯笼、招财金币与猫爪福纹组成的新春框。",
+      "candidatePath": "avatar-borders/static/SpringFestivalLuckyCat2026.png",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/SpringFestivalLuckyCat2026.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      }
+    },
+    {
+      "key": "SpringFestival2026_1",
+      "category": "avatarBorder",
+      "variant": "static",
+      "nameZh": "大战年兽",
+      "descriptionZh": "火花、兽角与爆竹围成热烈的新春战斗框。",
+      "candidatePath": "avatar-borders/static/SpringFestival2026_1.png",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/SpringFestival2026_1.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      }
+    },
+    {
+      "key": "SpringFestival2026_LuckyHorseCat",
+      "category": "avatarBorder",
+      "variant": "static",
+      "nameZh": "马上有钱",
+      "descriptionZh": "碧玉马蹄、流苏与金币组合成轻盈的马年招财框。",
+      "candidatePath": "avatar-borders/static/SpringFestival2026_LuckyHorseCat.png",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/SpringFestival2026_LuckyHorseCat.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      }
+    },
+    {
+      "key": "holyPawsGospel",
+      "category": "avatarBorder",
+      "variant": "static",
+      "nameZh": "曦光福音",
+      "descriptionZh": "象牙羽翼与金色爪环释放温柔守护光。",
+      "candidatePath": "avatar-borders/static/holyPawsGospel.png",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/holyPawsGospel.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      }
+    },
+    {
+      "key": "emberClaw",
+      "category": "avatarBorder",
+      "variant": "static",
+      "nameZh": "铁甲征服者",
+      "descriptionZh": "玄铁外圈、熔岩爪痕与余烬火星塑造强硬战意。",
+      "candidatePath": "avatar-borders/static/emberClaw.png",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/png/emberClaw.png",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      }
+    },
+    {
+      "key": "SpringFestival2026_12",
+      "category": "avatarBorder",
+      "variant": "animated-review-gif",
+      "nameZh": "大战年兽！",
+      "descriptionZh": "金环呼吸、爆竹火星沿边缘奔跑的新春动态候选。",
+      "candidatePath": "avatar-borders/animated/SpringFestival2026_12.gif",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "GIF",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/webm/t_avatarBorder_SpringFestival2026_12.webm",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "frames": 12,
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      },
+      "conversionAfterApproval": "alpha VP9 WebM"
+    },
+    {
+      "key": "SpringFestival2026_LuckyHorseCat2",
+      "category": "avatarBorder",
+      "variant": "animated-review-gif",
+      "nameZh": "马上有钱！",
+      "descriptionZh": "玉色马蹄与金币高光循环追逐的动态招财候选。",
+      "candidatePath": "avatar-borders/animated/SpringFestival2026_LuckyHorseCat2.gif",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "GIF",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/webm/SpringFestival2026_LuckyHorseCat.webm",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "frames": 12,
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      },
+      "conversionAfterApproval": "alpha VP9 WebM"
+    },
+    {
+      "key": "slumberCat",
+      "category": "avatarBorder",
+      "variant": "animated-review-gif",
+      "nameZh": "酣睡小猫",
+      "descriptionZh": "月云轻轻起伏、星点慢闪的静谧睡眠动态框。",
+      "candidatePath": "avatar-borders/animated/slumberCat.gif",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "GIF",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/webm/slumberCat.webm",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "frames": 12,
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      },
+      "conversionAfterApproval": "alpha VP9 WebM"
+    },
+    {
+      "key": "catMercante",
+      "category": "avatarBorder",
+      "variant": "animated-review-gif",
+      "nameZh": "行市猫商",
+      "descriptionZh": "铜币、价签与翡翠刻度轮转的猫商动态框。",
+      "candidatePath": "avatar-borders/animated/catMercante.gif",
+      "spec": {
+        "width": 320,
+        "height": 320,
+        "format": "GIF",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/webm/catMercante.webm",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "frames": 12,
+      "centralClearance": {
+        "shape": "circle",
+        "minimumDiameterPercent": 58
+      },
+      "conversionAfterApproval": "alpha VP9 WebM"
+    },
+    {
+      "key": "warrior",
+      "category": "animatedAvatar",
+      "variant": "animated-review-gif",
+      "nameZh": "战士喵·炽盾跃动",
+      "descriptionZh": "盾面火光呼吸、披风轻摆的透明动态头像。",
+      "candidatePath": "animated-avatars/warrior.gif",
+      "spec": {
+        "width": 550,
+        "height": 550,
+        "format": "GIF",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/gif/avatarBattleUnitCard_WarriorAnim.gif",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "frames": 10,
+      "conversionAfterApproval": "alpha VP9 WebM"
+    },
+    {
+      "key": "magical",
+      "category": "animatedAvatar",
+      "variant": "animated-review-gif",
+      "nameZh": "魔法师喵·星轨跃动",
+      "descriptionZh": "星点绕行、法杖明灭的透明动态头像。",
+      "candidatePath": "animated-avatars/magical.gif",
+      "spec": {
+        "width": 550,
+        "height": 550,
+        "format": "GIF",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/gif/avatarBattleUnitCard_MagicalAnim.gif",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "frames": 10,
+      "conversionAfterApproval": "alpha VP9 WebM"
+    },
+    {
+      "key": "cleric",
+      "category": "animatedAvatar",
+      "variant": "animated-review-gif",
+      "nameZh": "牧师喵·祈光跃动",
+      "descriptionZh": "治愈爪环脉动的透明动态头像；现有真实 cleric 素材优先。",
+      "candidatePath": "animated-avatars/cleric.gif",
+      "spec": {
+        "width": 550,
+        "height": 550,
+        "format": "GIF",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/gif/avatarBattleUnitCard_ClericAnim.gif",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "frames": 10,
+      "conversionAfterApproval": "alpha VP9 WebM",
+      "realAssetPriority": true,
+      "doNotOverwriteExisting": true
+    },
+    {
+      "key": "avatarAlchemist",
+      "category": "animatedAvatar",
+      "variant": "animated-review-gif",
+      "nameZh": "炼金术师喵·瓶中星火",
+      "descriptionZh": "药瓶气泡上浮、护目镜反光的透明动态头像。",
+      "candidatePath": "animated-avatars/avatarAlchemist.gif",
+      "spec": {
+        "width": 512,
+        "height": 512,
+        "format": "GIF",
+        "alphaRequired": true
+      },
+      "targetLogicalPath": "assets/gif/avatarAlchemist.gif",
+      "status": "candidate-only",
+      "runtimeConnected": false,
+      "source": "programmatic-original-cat-theme",
+      "frames": 10,
+      "conversionAfterApproval": "alpha VP9 WebM"
+    }
+  ],
+  "contactSheets": [
+    {
+      "path": "contact-sheets/01-chat-bubbles.png",
+      "spec": {
+        "width": 1584,
+        "height": 1574,
+        "format": "PNG"
+      },
+      "contents": "7 套气泡 preview",
+      "animationPolicy": "GIF 仅取首帧"
+    },
+    {
+      "path": "contact-sheets/02-profile-backgrounds.png",
+      "spec": {
+        "width": 1564,
+        "height": 1614,
+        "format": "PNG"
+      },
+      "contents": "5 套 1200×720 背景",
+      "animationPolicy": "GIF 仅取首帧"
+    },
+    {
+      "path": "contact-sheets/03-battle-styles.png",
+      "spec": {
+        "width": 1584,
+        "height": 2354,
+        "format": "PNG"
+      },
+      "contents": "4 头像 + 4 场景",
+      "animationPolicy": "GIF 仅取首帧"
+    },
+    {
+      "path": "contact-sheets/04-static-avatar-borders.png",
+      "spec": {
+        "width": 1614,
+        "height": 1224,
+        "format": "PNG"
+      },
+      "contents": "15 套静态透明头像框",
+      "animationPolicy": "GIF 仅取首帧"
+    },
+    {
+      "path": "contact-sheets/05-animations-first-frames.png",
+      "spec": {
+        "width": 1584,
+        "height": 974,
+        "format": "PNG"
+      },
+      "contents": "4 动态框 + 4 动态头像（首帧）",
+      "animationPolicy": "GIF 仅取首帧"
+    }
+  ]
+}

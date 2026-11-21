@@ -1123,6 +1123,11 @@ function ip(e, l) {
         data: l ?? null
     })
 }
+function phaseOneEmit(e, l) {
+    ap.emit(e, JSON.stringify({
+        data: l ?? null
+    }))
+}
 const up = e => t => {
     let l = l => {
         let a;
@@ -10322,217 +10327,6 @@ const Iw = up("character:getBattleInventory:success")
   , JC = up("character:reorderSkill:success")
   , ZC = up("character:copySkillLogic:success")
   , eI = up("character:copySkillLogic:fail")
-  , tI = up("gmcheck:fail")
-  , lI = (e, t, l="") => {
-    ip("gm:addInventory", {
-        targetName: e,
-        items: t,
-        comment: l
-    })
-}
-  , aI = up("gm:addInventory:success")
-  , sI = up("gm:addInventory:fail")
-  , rI = (e, t) => {
-    ip("gm:addTitle", {
-        targetName: e,
-        title: t
-    })
-}
-  , nI = up("gm:addTitle:success")
-  , iI = up("gm:addTitle:fail")
-  , uI = (e, t, l="") => {
-    ip("gm:removeInventory", {
-        targetName: e,
-        items: t,
-        comment: l
-    })
-}
-  , oI = up("gm:removeInventory:success")
-  , dI = up("gm:removeInventory:fail")
-  , cI = (e, t) => {
-    ip("gm:banUser", {
-        targetName: e,
-        reason: t
-    })
-}
-  , mI = up("gm:banUser:success")
-  , pI = up("gm:banUser:fail")
-  , fI = (e, t="", l) => {
-    ip("gm:batchAddInventory", {
-        items: e,
-        comment: t,
-        filter: l
-    })
-}
-  , vI = up("gm:batchAddInventory:progress")
-  , gI = up("gm:batchAddInventory:result")
-  , yI = up("gm:batchAddInventory:fail")
-  , xI = (e, t, l, a) => {
-    ip("gm:batchSendNotice", {
-        title: e,
-        content: t,
-        type: l,
-        duration: a
-    })
-}
-  , bI = up("gm:batchSendNotice:progress")
-  , hI = up("gm:batchSendNotice:result")
-  , kI = up("gm:batchSendNotice:fail")
-  , _I = up("gm:notice:receive")
-  , wI = e => {
-    ip("gm:kickUserFromRoom", {
-        targetName: e
-    })
-}
-  , CI = up("gm:removeUserRoom:success")
-  , II = up("gm:removeUserRoom:fail")
-  , UI = (e, t, l, a="all") => {
-    ip("gm:getUserTransactionList", {
-        targetUuid: e,
-        page: t,
-        take: l,
-        filterType: a
-    })
-}
-  , SI = up("gm:getUserTransactionList:success")
-  , RI = up("gm:getUserTransactionList:fail")
-  , VI = (e, t) => {
-    ip("gm:rollbackMarketSubTrade", {
-        tradeUuid: e,
-        buyerIndex: t
-    })
-}
-  , BI = up("gm:rollbackMarketSubTrade:success")
-  , EI = up("gm:rollbackMarketSubTrade:fail")
-  , LI = (e, t) => {
-    ip("gm:rollbackMarketPurchaseSubTrade", {
-        tradeUuid: e,
-        buyerIndex: t
-    })
-}
-  , MI = up("gm:rollbackMarketPurchaseSubTrade:success")
-  , PI = up("gm:rollbackMarketPurchaseSubTrade:fail")
-  , AI = (e, t, l) => {
-    ip("gm:getUserBuyerMarketList", {
-        targetUuid: e,
-        page: t,
-        take: l
-    })
-}
-  , TI = up("gm:getUserBuyerMarketList:success")
-  , DI = up("gm:getUserBuyerMarketList:fail")
-  , zI = (e, t) => {
-    ip("gm:rollbackBuyerMarketSubTrade", {
-        tradeUuid: e,
-        sellerIndex: t
-    })
-}
-  , jI = up("gm:rollbackBuyerMarketSubTrade:success")
-  , OI = up("gm:rollbackBuyerMarketSubTrade:fail")
-  , FI = (e, t, l, a) => {
-    ip("Xcsac4a31", {
-        targetUserName: e,
-        value: t,
-        reason: l,
-        bearer: a
-    })
-}
-  , qI = up("Xcsac4a31:success")
-  , $I = up("Xcsac4a31:fail")
-  , NI = (e, t, l, a) => {
-    ip("Xcsac4apv", {
-        targetUserName: e,
-        value: t,
-        reason: l,
-        bearer: a
-    })
-}
-  , GI = up("Xcsac4apv:success")
-  , WI = up("Xcsac4apv:fail")
-  , HI = (e, t, l, a) => {
-    ip("DSvuerarv", {
-        targetUserName: e,
-        value: t,
-        reason: l,
-        bearer: a
-    })
-}
-  , YI = up("DSvuerarv:success")
-  , KI = up("DSvuerarv:fail")
-  , XI = e => {
-    ip("aonrevoi:info", {
-        bearer: e
-    })
-}
-  , QI = up("aonrevoi:info:success")
-  , JI = (e, t) => {
-    ip("aonrevoi:update", {
-        info: e,
-        bearer: t
-    })
-}
-  , ZI = up("aonrevoi:update:success")
-  , eU = (e, t, l) => {
-    ip("gm:serviceUsage:preview", {
-        targetUserName: e,
-        serviceKey: t,
-        bearer: l
-    })
-}
-  , tU = up("gm:serviceUsage:preview:success")
-  , lU = up("gm:serviceUsage:preview:fail")
-  , aU = (e, t, l, a) => {
-    ip("gm:serviceUsage:set", {
-        targetUserName: e,
-        serviceKey: t,
-        usedCount: l,
-        bearer: a
-    })
-}
-  , sU = up("gm:serviceUsage:set:success")
-  , rU = up("gm:serviceUsage:set:fail")
-  , nU = (e, t, l, a) => {
-    ip("gm:getSponsorPointRecords", {
-        page: e,
-        take: t,
-        changeType: l,
-        target: a
-    })
-}
-  , iU = up("gm:getSponsorPointRecords:success")
-  , uU = up("gm:getSponsorPointRecords:fail")
-  , oU = e => {
-    ip("gm:worldBossConfig:create", e)
-}
-  , dU = up("gm:worldBossConfig:create:success")
-  , cU = up("gm:worldBossConfig:create:fail")
-  , mU = e => {
-    ip("gm:worldBossConfig:updateOnly", e)
-}
-  , pU = up("gm:worldBossConfig:updateOnly:success")
-  , fU = up("gm:worldBossConfig:updateOnly:fail")
-  , vU = () => {
-    ip("gm:worldBossConfig:list")
-}
-  , gU = up("gm:worldBossConfig:list:success")
-  , yU = up("gm:worldBossConfig:list:fail")
-  , xU = e => {
-    ip("gm:worldBoss:reset", {
-        bossId: e
-    })
-}
-  , bU = up("gm:worldBoss:reset:success")
-  , hU = up("gm:worldBoss:reset:fail")
-  , kU = (e, t, l) => {
-    ip("gm:grantStyle", {
-        targetName: e,
-        styleType: t,
-        styleId: l
-    })
-}
-  , _U = up("gm:grantStyle:success")
-  , wU = up("gm:grantStyle:fail")
-  , CU = up("gm:grantStyle:apply")
   , IU = up("dispatchCharacterStatusInfo")
   , UU = up("tavern:hireExpert:success")
   , SU = up("tavern:hireExpert:error")
@@ -10667,12 +10461,18 @@ const eR = up("guild:title:list:success")
   , oR = () => ({
     unlocked: !!uR().value.find(e => "unlock_9" == e.key && "decorate_unlock" == e.type)
 });
-function dR(e) {
-    ip("style:get", {
-        uuid: e
+function phaseOneRequestId(e) {
+    const t = globalThis.crypto?.randomUUID?.() || Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+    return (e + "-" + t).slice(0, 100)
+}
+function dR(e, t) {
+    phaseOneEmit("style:get", {
+        uuid: e,
+        requestId: t
     })
 }
 const cR = up("style:get:success")
+  , qPe = up("style:get:fail")
   , mR = up("style:setAll:success")
   , pR = up("style:setAll:fail")
   , fR = () => e("userCustomStyle", () => ({
@@ -10962,15 +10762,6 @@ const TR = up("villageBuilding:fund:success")
             } catch (t) {}
             IU(e => {
                 U.value = e
-            }
-            ),
-            _I( ({title: e, content: t, type: l, duration: a}) => {
-                Jx({
-                    title: e,
-                    message: t,
-                    type: l || "info",
-                    duration: a || 5e3
-                })
             }
             ),
             n_(e => {
@@ -11585,8 +11376,8 @@ const TR = up("villageBuilding:fund:success")
             }
             ),
             cR(e => {
-                L.value = e.style,
-                M.value[e.uuid] = e.style
+                e.uuid === a.value?.uuid ? L.value = e.style : (M.value[e.uuid] = d(e.style),
+                M.value = d(M.value))
             }
             ),
             mR(e => {
@@ -11634,16 +11425,6 @@ const TR = up("villageBuilding:fund:success")
             ),
             YU( ({requests: e}) => {
                 j.value = e
-            }
-            ),
-            CU( ({styleType: e, styleId: t}) => {
-                const l = ee[e];
-                Jx({
-                    title: "样式已解锁",
-                    type: "success",
-                    message: `获得${te[e] || e}：${l?.[t]?.name || t || "未知样式"}`,
-                    duration: 99900
-                })
             }
             ),
             pS();
@@ -17396,8 +17177,25 @@ const fM = {
         }
     }
 }), [["__scopeId", "data-v-6f85c1f8"]]);
-function yD() {
-    ip("userPersonalization:get")
+function yD(e) {
+    phaseOneEmit("userPersonalization:get", {
+        requestId: e
+    })
+}
+function personalizationCategoryOrder(e) {
+    const t = Object.keys(Ot).filter(e => e !== Ft.Custom)
+      , l = []
+      , a = new Set;
+    for (const s of Array.isArray(e) ? e : [])
+        Object.hasOwn(Ot, s) && s !== Ft.Custom && !a.has(s) && (a.add(s),
+        l.push(s));
+    for (const s of t)
+        a.has(s) || (a.add(s),
+        l.push(s));
+    return l
+}
+function samePersonalizationList(e, t) {
+    return e.length === t.length && e.every( (e, l) => e === t[l])
 }
 const xD = up("userPersonalization:get:success")
   , bD = up("userPersonalization:setFavorites:success")
@@ -17453,6 +17251,12 @@ const xD = up("userPersonalization:get:success")
   , TD = {
     class: "flex flex-col gap-4"
 }
+  , personalCategoryOrderPanel = {
+    class: "p-2 border rounded bg-gray-50 dark:bg-gray-800"
+}
+  , personalCategoryOrderRow = {
+    class: "flex items-center gap-2 py-1"
+}
   , DD = {
     key: 0,
     class: "mt-2 p-2 border rounded bg-gray-50 dark:bg-gray-800"
@@ -17494,7 +17298,7 @@ const xD = up("userPersonalization:get:success")
                     for (const l of t.category)
                         e[l] || (e[l] = []),
                         e[l].push(t);
-            return _(Ot).filter(t => e[t] && e[t].length).map(t => ({
+            return personalizationCategoryOrder(u.value).filter(t => e[t] && e[t].length).map(t => ({
                 category: t,
                 resources: e[t]
             }))
@@ -17541,44 +17345,186 @@ const xD = up("userPersonalization:get:success")
           , f = B(!1)
           , v = B([])
           , g = B("")
-          , y = _(Ot).filter(e => e !== Ft.Custom);
+          , y = E( () => personalizationCategoryOrder(u.value))
+          , personalCategoryDraft = B([])
+          , personalVersion = B(0)
+          , personalSaving = B(!1)
+          , personalPending = B(null)
+          , personalLoaded = B(!1);
+        let personalGetRequestId, personalGetTimer, personalSaveTimer, personalDisposed = !1, personalGetOff, personalSetOff, personalErrorOff, personalDraftBaseline = null, personalEditGeneration = 0, personalBaselineGeneration = 0;
         function x(e) {
             const t = /\+\d+$/;
             return Object.values(zt).filter(l => Array.isArray(l.category) && l.category.includes(e) && (!l.hideInMarket || e === Ft.Currency) && !t.test(l.id))
         }
+        function personalDraftSnapshot() {
+            return {
+                favorites: [...v.value],
+                categoryOrder: personalizationCategoryOrder(personalCategoryDraft.value)
+            }
+        }
+        function personalSameDraft(e, t) {
+            return !!e && !!t && samePersonalizationList(e.favorites, t.favorites) && samePersonalizationList(e.categoryOrder, t.categoryOrder)
+        }
+        function personalDraftIsClean() {
+            return personalEditGeneration === personalBaselineGeneration && personalSameDraft(personalDraftSnapshot(), personalDraftBaseline)
+        }
+        function personalHydrateDraft(e, t) {
+            v.value = [...e],
+            personalCategoryDraft.value = [...t],
+            personalDraftBaseline = {
+                favorites: [...e],
+                categoryOrder: [...t]
+            },
+            personalBaselineGeneration = personalEditGeneration
+        }
+        function personalApplyAuthority(e, t=!1) {
+            const l = e.favoriteItems || []
+              , a = personalizationCategoryOrder(e.categoryOrder)
+              , s = !f.value || personalDraftIsClean();
+            i.value = l,
+            u.value = a,
+            personalVersion.value = Number.isSafeInteger(e.version) ? e.version : personalVersion.value,
+            (t || s) && personalHydrateDraft(l, a)
+        }
+        function personalMarkEdited() {
+            personalEditGeneration += 1
+        }
         function b() {
-            v.value = [...i.value],
+            if (!personalLoaded.value)
+                return void Jx.error({
+                    title: "加载中",
+                    message: "个性化设置尚未加载完成"
+                });
+            personalHydrateDraft(i.value, personalizationCategoryOrder(u.value)),
             g.value = "",
             f.value = !0
         }
+        function personalMoveCategory(e, t) {
+            const l = e + t;
+            l >= 0 && l < personalCategoryDraft.value.length && ([personalCategoryDraft.value[e], personalCategoryDraft.value[l]] = [personalCategoryDraft.value[l], personalCategoryDraft.value[e]],
+            personalCategoryDraft.value = [...personalCategoryDraft.value],
+            personalMarkEdited())
+        }
+        function personalFinishAttempt() {
+            personalSaveTimer && clearTimeout(personalSaveTimer),
+            personalSaveTimer = void 0,
+            personalSaving.value = !1,
+            personalPending.value = null
+        }
+        function personalRequestGet() {
+            personalGetTimer && clearTimeout(personalGetTimer),
+            personalGetRequestId = phaseOneRequestId("personalization-get"),
+            personalLoaded.value = !1,
+            yD(personalGetRequestId);
+            const e = personalGetRequestId;
+            personalGetTimer = setTimeout( () => {
+                !personalDisposed && personalGetRequestId === e && (personalGetRequestId = void 0,
+                personalLoaded.value = !1,
+                Jx.error({
+                    title: "加载失败",
+                    message: "个性化设置加载超时"
+                }))
+            }
+            , 15e3),
+            personalGetTimer.unref?.()
+        }
         function h() {
-            v.value.length > 500 ? Jx.error({
-                title: "操作失败",
-                message: "最多只能收藏 500 个物品"
-            }) : (ip("userPersonalization:setFavorites", {
-                favorites: v.value
+            if (personalSaving.value || !personalLoaded.value)
+                return;
+            if (v.value.length > 500)
+                return void Jx.error({
+                    title: "操作失败",
+                    message: "最多只能收藏 500 个物品"
+                });
+            const e = personalDraftSnapshot()
+              , t = phaseOneRequestId("personalization-set");
+            personalPending.value = {
+                requestId: t,
+                snapshot: e,
+                editGeneration: personalEditGeneration
+            },
+            personalSaving.value = !0,
+            phaseOneEmit("userPersonalization:setFavorites", {
+                favorites: [...e.favorites],
+                categoryOrder: [...e.categoryOrder],
+                expectedVersion: personalVersion.value,
+                requestId: t
             }),
-            f.value = !1)
+            personalSaveTimer && clearTimeout(personalSaveTimer),
+            personalSaveTimer = setTimeout( () => {
+                !personalDisposed && personalSaving.value && personalPending.value?.requestId === t && (personalFinishAttempt(),
+                Jx.error({
+                    title: "保存失败",
+                    message: "请求超时，请稍后重试"
+                }))
+            }
+            , 15e3),
+            personalSaveTimer.unref?.()
         }
         function k() {
-            f.value = !1
+            personalSaving.value || (f.value = !1)
         }
         const w = E( () => n.value ? Object.values(zt).filter(e => !s.value[e.id] && e.name.includes(n.value) && ((e.category ?? []).includes(o.value) || "all" === o.value || "usable" === o.value)).filter(e => !e.hideInMarket) : []);
         return $(async () => {
-            await np(),
+            await np();
+            if (personalDisposed)
+                return;
             r_(),
-            yD(),
-            xD(e => {
-                i.value = e.favoriteItems || [],
-                u.value = e.categoryOrder || []
+            personalGetOff = xD(e => {
+                if (!personalGetRequestId || e?.requestId !== personalGetRequestId)
+                    return;
+                personalGetTimer && clearTimeout(personalGetTimer),
+                personalGetTimer = void 0,
+                personalGetRequestId = void 0,
+                personalLoaded.value = !0,
+                personalApplyAuthority(e)
             }
             ),
-            bD(e => {
-                i.value = e.favoriteItems || []
+            personalSetOff = bD(e => {
+                const t = personalPending.value
+                  , l = !!t && e?.requestId === t.requestId;
+                personalApplyAuthority(e),
+                l && (personalFinishAttempt(),
+                t.editGeneration === personalEditGeneration && personalSameDraft(personalDraftSnapshot(), t.snapshot) && (personalHydrateDraft(e.favoriteItems || [], personalizationCategoryOrder(e.categoryOrder)),
+                f.value = !1),
+                Jx.success({
+                    title: "个性化设置已保存"
+                }))
             }
             ),
-            hD(e => {}
-            )
+            personalErrorOff = hD(e => {
+                if (personalSaving.value && personalPending.value && e?.requestId === personalPending.value.requestId) {
+                    const t = personalPending.value;
+                    personalFinishAttempt(),
+                    "VERSION_CONFLICT" === e?.code && e.state && personalApplyAuthority(e.state),
+                    Jx.error({
+                        title: "VERSION_CONFLICT" === e?.code ? "个性化设置已在其他页面更新" : "保存失败",
+                        message: e?.message || "个性化设置保存失败"
+                    });
+                    return
+                }
+                personalGetRequestId && e?.requestId === personalGetRequestId && (personalGetTimer && clearTimeout(personalGetTimer),
+                personalGetTimer = void 0,
+                personalGetRequestId = void 0,
+                personalLoaded.value = !1,
+                Jx.error({
+                    title: "加载失败",
+                    message: e?.message || "个性化设置加载失败"
+                }))
+            }
+            ),
+            personalRequestGet()
+        }
+        ),
+        X( () => {
+            personalDisposed = !0,
+            personalGetTimer && clearTimeout(personalGetTimer),
+            personalSaveTimer && clearTimeout(personalSaveTimer),
+            personalGetRequestId = void 0,
+            personalFinishAttempt(),
+            personalGetOff?.(),
+            personalSetOff?.(),
+            personalErrorOff?.()
         }
         ),
         (e, t) => {
@@ -17615,25 +17561,23 @@ const xD = up("userPersonalization:get:success")
                     label: "🗡️战斗装备",
                     name: "battleEquipment"
                 }), (M(!0),
-                L(z, null, W(T(Ot), (e, t) => (M(),
-                L(z, {
-                    key: t
-                }, [t != T(Ft).Custom ? (M(),
+                L(z, null, W(T(y), t => (M(),
                 H(i, {
-                    key: 0,
-                    label: `${e.icon} ${e.name}`,
+                    key: t,
+                    label: `${T(Ot)[t].icon} ${T(Ot)[t].name}`,
                     name: t
-                }, null, 8, ["label", "name"])) : P("", !0)], 64))), 128))]),
+                }, null, 8, ["label", "name"]))), 128))]),
                 _: 1
             }, 8, ["modelValue"]), A("div", ID, [q(_, {
                 size: "small",
                 type: "primary",
-                onClick: b
+                onClick: b,
+                disabled: !T(personalLoaded) || T(personalSaving)
             }, {
                 default: Y( () => t[9] || (t[9] = [G("管理收藏", -1)])),
                 _: 1,
                 __: [9]
-            })])])]), A("div", UD, [T(p).length ? (M(),
+            }, 8, ["disabled"])])])]), A("div", UD, [T(p).length ? (M(),
             L("div", SD, [t[10] || (t[10] = A("div", {
                 class: "w-full font-bold text-lg"
             }, "收藏", -1)), A("div", RD, [(M(!0),
@@ -17713,20 +17657,63 @@ const xD = up("userPersonalization:get:success")
                 width: T(l) ? "100%" : "760px"
             }, {
                 footer: Y( () => [A("div", ND, [q(_, {
-                    onClick: k
+                    onClick: k,
+                    disabled: T(personalSaving)
                 }, {
                     default: Y( () => t[15] || (t[15] = [G("取消", -1)])),
                     _: 1,
                     __: [15]
-                }), q(_, {
+                }, 8, ["disabled"]), q(_, {
                     type: "primary",
-                    onClick: h
+                    onClick: h,
+                    loading: T(personalSaving),
+                    disabled: T(personalSaving) || !T(personalLoaded)
                 }, {
-                    default: Y( () => t[16] || (t[16] = [G("确定", -1)])),
+                    default: Y( () => t[16] || (t[16] = [G("保存收藏与分类顺序", -1)])),
                     _: 1,
                     __: [16]
-                })])]),
-                default: Y( () => [A("div", TD, [T(v).length ? (M(),
+                }, 8, ["loading", "disabled"])])]),
+                default: Y( () => [A("div", TD, [A("div", personalCategoryOrderPanel, [A("div", {
+                    class: "flex items-center justify-between mb-2"
+                }, [A("div", null, [A("div", {
+                    class: "font-bold"
+                }, "分类展示顺序"), A("div", {
+                    class: "text-xs text-gray-500"
+                }, "控制“全部/可使用”分组及标准资源分类标签；全部、可使用、生活装备、战斗装备固定置顶。")]), q(_, {
+                    size: "small",
+                    onClick: t[17] || (t[17] = () => {
+                        personalCategoryDraft.value = personalizationCategoryOrder([]),
+                        personalMarkEdited()
+                    }
+                    )
+                }, {
+                    default: Y( () => t[18] || (t[18] = [G("恢复默认", -1)])),
+                    _: 1,
+                    __: [18]
+                }, 8, ["onClick"])]), (M(!0),
+                L(z, null, W(T(personalCategoryDraft), (e, l) => (M(),
+                L("div", {
+                    key: e,
+                    ...personalCategoryOrderRow
+                }, [A("span", {
+                    class: "w-8 text-xs text-gray-500"
+                }, O(l + 1), 1), A("span", {
+                    class: "flex-1"
+                }, O(`${T(Ot)[e]?.icon || ""} ${T(Ot)[e]?.name || e}`), 1), q(_, {
+                    size: "small",
+                    disabled: 0 === l,
+                    onClick: () => personalMoveCategory(l, -1)
+                }, {
+                    default: Y( () => [G("↑")]),
+                    _: 2
+                }, 1032, ["disabled", "onClick"]), q(_, {
+                    size: "small",
+                    disabled: l === T(personalCategoryDraft).length - 1,
+                    onClick: () => personalMoveCategory(l, 1)
+                }, {
+                    default: Y( () => [G("↓")]),
+                    _: 2
+                }, 1032, ["disabled", "onClick"])]))), 128))]), T(v).length ? (M(),
                 L("div", DD, [t[14] || (t[14] = A("div", {
                     class: "font-bold mb-2"
                 }, "已选择", -1)), A("div", zD, [(M(!0),
@@ -17741,10 +17728,12 @@ const xD = up("userPersonalization:get:success")
                 }, null, 8, ["resource-id"]), A("div", jD, O(T(zt)[e]?.name || e), 1), q(_, {
                     type: "text",
                     class: "ml-2 text-red-500",
-                    onClick: ce(t => function(e) {
-                        const t = v.value.indexOf(e);
-                        t >= 0 && v.value.splice(t, 1)
-                    }(e), ["stop"])
+                    onClick: ce(t => {
+                        const l = v.value.indexOf(e);
+                        l >= 0 && v.value.splice(l, 1),
+                        personalMarkEdited()
+                    }
+                    , ["stop"])
                 }, {
                     default: Y( () => t[13] || (t[13] = [G("✕", -1)])),
                     _: 2,
@@ -17769,7 +17758,8 @@ const xD = up("userPersonalization:get:success")
                         class: "absolute inset-0 w-full h-full bg-transparent",
                         onClick: ce( () => {
                             const t = T(v).indexOf(e.id);
-                            t >= 0 ? T(v).splice(t, 1) : T(v).push(e.id)
+                            t >= 0 ? T(v).splice(t, 1) : T(v).push(e.id),
+                            personalMarkEdited()
                         }
                         , ["stop"])
                     }, null, 8, $D)]),
@@ -19018,13 +19008,13 @@ const xD = up("userPersonalization:get:success")
         let a;
         $(async () => {
             await np(),
-            ip("character:getOtherPlayerWorkEquipment", {
-                characterUuid: t.userUuid
-            }),
             a = ww(e => {
                 l.value = e
             }
-            )
+            ),
+            ip("character:getOtherPlayerWorkEquipment", {
+                characterUuid: t.userUuid
+            })
         }
         );
         const s = E( () => [l.value?.decorate1, l.value?.decorate2, l.value?.decorate3, l.value?.decorate4, l.value?.decorate5, l.value?.decorate6, l.value?.decorate7, l.value?.decorate8, l.value?.decorate9].every(e => !!e));
@@ -19129,13 +19119,13 @@ const xD = up("userPersonalization:get:success")
         let a;
         $(async () => {
             await np(),
-            ip("character:getOtherPlayerEquipment", {
-                characterUuid: t.userUuid
-            }),
             a = _w(e => {
                 l.value = e
             }
-            )
+            ),
+            ip("character:getOtherPlayerEquipment", {
+                characterUuid: t.userUuid
+            })
         }
         );
         const s = E( () => [l.value?.decorate1, l.value?.decorate2, l.value?.decorate3, l.value?.decorate4, l.value?.decorate5, l.value?.decorate6, l.value?.decorate7, l.value?.decorate8, l.value?.decorate9].every(e => !!e))
@@ -19370,7 +19360,7 @@ const xD = up("userPersonalization:get:success")
             i.value = !1
         }
           , g = e => {
-            u.value = e.data.message,
+            u.value = e.message,
             i.value = !1
         }
           , y = E( () => n.value?.base.title ? nf[n.value?.base.title].name : "")
@@ -29684,7 +29674,7 @@ const $Y = {
                         })]),
                         default: Y( () => [q(f)]),
                         _: 1
-                    }), q(r, {
+                    }), false ? q(r, {
                         lazy: !0,
                         label: "祝福",
                         name: "affix"
@@ -29711,7 +29701,7 @@ const $Y = {
                         })]),
                         default: Y( () => [q(v)]),
                         _: 1
-                    }), q(r, {
+                    }) : P("", !0), q(r, {
                         lazy: !0,
                         label: "配装方案",
                         name: "outfit"
@@ -34841,420 +34831,7 @@ const e0 = {
         }
     }
 }), [["__scopeId", "data-v-6184d887"]])
-  , _2 = up("sponsorShop:buy:success")
-  , w2 = up("sponsorShop:buy:fail")
-  , C2 = up("shop:exchangeSponsorPointPack:success")
-  , I2 = up("shop:exchangeSponsorPointPack:fail")
-  , U2 = {
-    class: "text-gray-600 dark:text-gray-400 mb-6 text-sm"
-}
-  , S2 = {
-    class: "gap-1 mt-2"
-}
-  , R2 = {
-    class: "gap-1 mt-4"
-}
-  , V2 = {
-    class: "flex flex-col flex-wrap items-center"
-}
-  , B2 = {
-    class: "mr-auto text-lg font-semibold flex items-center gap-2"
-}
-  , E2 = {
-    class: "text-yellow-500 text-xl"
-}
-  , L2 = {
-    class: "mr-auto text-lg font-semibold flex items-center gap-2"
-}
-  , M2 = {
-    class: "text-yellow-500 text-xl"
-}
-  , P2 = {
-    class: "flex my-2"
-}
-  , A2 = {
-    class: "flex flex-col gap-2"
-}
-  , T2 = {
-    class: "text-sm font-medium mb-2"
-}
-  , D2 = {
-    class: "mb-4 flex items-center"
-}
-  , z2 = {
-    class: "ml-2 text-gray-400"
-}
-  , j2 = {
-    class: "flex flex-col h-full justify-between"
-}
-  , O2 = {
-    class: "flex items-center gap-2"
-}
-  , F2 = {
-    class: "mt-2 text-xs text-gray-500 dark:text-gray-400"
-}
-  , q2 = ["innerHTML"]
-  , $2 = {
-    class: "mt-3"
-}
-  , N2 = {
-    class: "inline-flex flex-row gap-2 items-center mb-2"
-}
-  , G2 = {
-    class: "text-yellow-500"
-}
-  , W2 = {
-    class: "flex flex-row flex-wrap gap-2 items-center"
-}
-  , H2 = {
-    key: 0
-}
-  , Y2 = {
-    class: "mb-4"
-}
-  , K2 = {
-    key: 0,
-    class: "mb-4 flex items-center"
-}
-  , X2 = {
-    class: "inline-flex flex-col gap-2"
-}
-  , Q2 = {
-    class: "text-yellow-500"
-}
-  , J2 = {
-    class: "inline-flex flex-col gap-2"
-}
-  , Z2 = {
-    class: "text-yellow-500"
-}
-  , e8 = {
-    key: 1
-}
-  , t8 = {
-    key: 2,
-    class: "my-2"
-}
-  , l8 = {
-    class: "dialog-footer"
-}
-  , a8 = l(V({
-    __name: "SponsorShop",
-    setup(e) {
-        const t = B(!1)
-          , l = B()
-          , a = B()
-          , s = B("all")
-          , n = sv()
-          , i = rf()
-          , u = B(0)
-          , o = E( () => i.value.sponsorPointPack?.count || 0)
-          , d = () => {
-            u.value <= 0 ? Jx({
-                title: "兑换数量必须大于0",
-                type: "warning"
-            }) : u.value && Number.isInteger(u.value) ? u.value > o.value ? Jx({
-                title: "兑换数量超过库存",
-                type: "warning"
-            }) : (ip("shop:exchangeSponsorPointPack", {
-                count: u.value
-            }),
-            u.value = 0) : Jx({
-                title: "兑换数量必须为整数",
-                type: "warning"
-            })
-        }
-          , {isMobile: c} = r();
-        sv();
-        const m = E( () => l.value?.id && i.value[l.value.id]?.count || 0)
-          , p = nR()
-          , v = B({
-            usedCount: 0,
-            available: 0,
-            lastUsedAt: null
-        })
-          , g = uR()
-          , y = E( () => Object.values(zt).filter(e => !!e.userBuyCostSponsorPoint))
-          , x = E( () => "all" === s.value ? y.value : y.value.filter(e => e.sponsorShopKind === s.value));
-        function b(e, t) {
-            return !(!e?.userBuyCostSponsorPoint || !t) && !h(e) && (e.maxBuyCount ? e.maxBuyCount <= Math.floor(p.value.current / e.userBuyCostSponsorPoint) : e.userBuyCostSponsorPoint * t <= p.value.current)
-        }
-        function h(e) {
-            if (!e?.uniqueFlagCheckWhenBuy)
-                return !1;
-            for (const t of e.uniqueFlagCheckWhenBuy) {
-                const e = g.value.some(e => e.type === t.data.type && e.key === t.data.key);
-                if ("has" === t.condition && !e || "not_has" === t.condition && e)
-                    return !0
-            }
-            return !1
-        }
-        const k = E( () => a.value && a.value.userBuyCostSponsorPoint ? a.value.userBuyCostSponsorPoint * (l.value?.count || 1) : 0)
-          , _ = E( () => p.value.current - k.value);
-        function w() {
-            a.value = void 0,
-            l.value = void 0
-        }
-        const C = E( () => new Set(Object.values(y.value).map(e => e.sponsorShopKind).filter(e => !!e)));
-        let I, U, S, R;
-        return $(async () => {
-            await np(),
-            await (async () => {
-                const e = await Ja("/api/game/sponsor/service-usage", {
-                    method: "GET",
-                    query: {
-                        serviceKey: "custom_service_level_1"
-                    }
-                });
-                e?.ok && (v.value = e.data)
-            }
-            )(),
-            I = _2(e => {
-                t.value = !1,
-                l.value = void 0,
-                a.value = void 0,
-                Jx({
-                    title: "购买成功",
-                    type: "success"
-                }),
-                ip("sponsorPoint:get"),
-                ip("uniqueFlag:all")
-            }
-            ),
-            U = w2(e => {
-                t.value = !1,
-                l.value = void 0,
-                a.value = void 0,
-                Jx({
-                    title: "购买失败",
-                    type: "error",
-                    message: e.message
-                })
-            }
-            ),
-            S = C2( () => {
-                Jx({
-                    title: "兑换成功",
-                    type: "success"
-                })
-            }
-            ),
-            R = I2(e => {
-                Jx({
-                    title: "兑换失败",
-                    type: "error",
-                    message: e.message
-                })
-            }
-            )
-        }
-        ),
-        X( () => {
-            I?.(),
-            U?.(),
-            S?.(),
-            R?.()
-        }
-        ),
-        (e, r) => {
-            const i = Oe
-              , c = Pe
-              , v = Me
-              , g = Xe
-              , y = Te
-              , I = Se
-              , U = Ue
-              , S = Ep
-              , R = _e;
-            return M(),
-            L(z, null, [A("div", U2, [r[12] || (r[12] = G(" 感谢每一位赞助者对游戏的支持！", -1)), r[13] || (r[13] = A("br", null, null, -1)), r[14] || (r[14] = G(" 赞助积分可用于兑换珍稀道具、专属装扮等福利。", -1)), r[15] || (r[15] = A("br", null, null, -1)), r[16] || (r[16] = G(" 快来看看有哪些心仪的奖励吧 (=｀ω´=) ", -1)), A("div", S2, [q(i, {
-                size: "small",
-                class: "font-bold!"
-            }, {
-                default: Y( () => r[5] || (r[5] = [G(" 在此处购买后会在仓库中加入对应的解锁物品，使用后可解锁对应的样式 ", -1)])),
-                _: 1,
-                __: [5]
-            }), r[7] || (r[7] = A("br", null, null, -1)), q(i, {
-                size: "small",
-                class: "font-bold!"
-            }, {
-                default: Y( () => r[6] || (r[6] = [G(" 解锁的样式可在右上角“个人信息”->“个性化”中进行修改 ", -1)])),
-                _: 1,
-                __: [6]
-            })]), A("div", R2, [q(i, {
-                class: "font-bold!"
-            }, {
-                default: Y( () => r[8] || (r[8] = [G(" 其他服务: ", -1)])),
-                _: 1,
-                __: [8]
-            }), r[10] || (r[10] = A("br", null, null, -1)), T(n).canUseCustomAvatar?.normal ? (M(),
-            H(i, {
-                key: 0,
-                size: "small",
-                class: "font-bold! text-green-600!"
-            }, {
-                default: Y( () => r[9] || (r[9] = [G(" 您已解锁自定义头像功能，可在“个人信息”中上传自定义头像 ", -1)])),
-                _: 1,
-                __: [9]
-            })) : (M(),
-            H(i, {
-                key: 1,
-                size: "small",
-                class: "font-bold! text-orange-400!"
-            }, {
-                default: Y( () => [G(" 总赞助积分达到 " + O(T(Yl)) + " 后，您可以使用自定义头像功能，可在“个人信息”中上传自定义头像 ", 1)]),
-                _: 1
-            })), r[11] || (r[11] = A("br", null, null, -1))])]), A("div", V2, [A("div", B2, [r[17] || (r[17] = A("span", null, "当前赞助积分：", -1)), A("span", E2, O(T(f)(T(p).current)), 1)]), A("div", L2, [r[18] || (r[18] = A("span", null, "历史总赞助积分：", -1)), A("span", M2, O(T(f)(T(p).max)), 1)])]), A("div", P2, [q(y, {
-                placement: "bottom",
-                width: "280",
-                trigger: "click"
-            }, {
-                reference: Y( () => [q(c, {
-                    size: "small",
-                    type: "success"
-                }, {
-                    default: Y( () => r[19] || (r[19] = [G("赞助积分包兑换", -1)])),
-                    _: 1,
-                    __: [19]
-                })]),
-                default: Y( () => [A("div", A2, [A("div", T2, [r[20] || (r[20] = G("你可以使用", -1)), q(T(Hg), {
-                    "resource-id": "sponsorPointPack"
-                }), r[21] || (r[21] = G("兑换赞助积分", -1))]), A("div", D2, [r[22] || (r[22] = A("span", {
-                    class: "whitespace-nowrap"
-                }, "可兑换：", -1)), q(v, {
-                    modelValue: u.value,
-                    "onUpdate:modelValue": r[0] || (r[0] = e => u.value = e),
-                    min: 0,
-                    max: o.value,
-                    step: 1,
-                    "step-strictly": !0
-                }, null, 8, ["modelValue", "max"]), A("span", z2, "/ " + O(o.value), 1)]), A("div", null, "可获得： " + O(T(Kl) * u.value) + " 赞助积分", 1), q(g, {
-                    title: "确认兑换" + u.value + "个赞助积分包？",
-                    onConfirm: d
-                }, {
-                    reference: Y( () => [q(c, {
-                        size: "small",
-                        type: "primary"
-                    }, {
-                        default: Y( () => r[23] || (r[23] = [G("兑换", -1)])),
-                        _: 1,
-                        __: [23]
-                    })]),
-                    _: 1
-                }, 8, ["title"])])]),
-                _: 1
-            })]), q(U, {
-                modelValue: s.value,
-                "onUpdate:modelValue": r[1] || (r[1] = e => s.value = e)
-            }, {
-                default: Y( () => [q(I, {
-                    label: "全部",
-                    name: "all"
-                }), (M(!0),
-                L(z, null, W(C.value, e => (M(),
-                H(I, {
-                    key: e,
-                    label: e,
-                    name: e
-                }, null, 8, ["label", "name"]))), 128))]),
-                _: 1
-            }, 8, ["modelValue"]), q(QZ, {
-                resources: x.value
-            }, {
-                card: Y( ({resource: e}) => [A("div", j2, [A("div", O2, [q(T(Hg), {
-                    "resource-id": e.id
-                }, null, 8, ["resource-id"])]), A("div", F2, [A("div", {
-                    innerHTML: (e.description || "").replace(/\n/g, "<br/>")
-                }, null, 8, q2)]), A("div", $2, [h(e) ? (M(),
-                H(i, {
-                    key: 0,
-                    size: "small"
-                }, {
-                    default: Y( () => r[24] || (r[24] = [G("已拥有", -1)])),
-                    _: 1,
-                    __: [24]
-                })) : (M(),
-                L(z, {
-                    key: 1
-                }, [A("div", N2, [r[25] || (r[25] = A("span", {
-                    class: "text-xs text-gray-500 dark:text-gray-400"
-                }, " 消耗积分： ", -1)), A("span", G2, O(e.userBuyCostSponsorPoint), 1)]), A("div", W2, [q(c, {
-                    plain: !b(e, 1),
-                    type: "success",
-                    size: "small",
-                    disabled: !b(e, 1),
-                    onClick: s => function(e) {
-                        t.value = !0,
-                        a.value = e,
-                        l.value = {
-                            id: e.id,
-                            count: 1
-                        }
-                    }(e),
-                    class: "mr-2"
-                }, {
-                    default: Y( () => r[26] || (r[26] = [G("购买", -1)])),
-                    _: 2,
-                    __: [26]
-                }, 1032, ["plain", "disabled", "onClick"]), q(nv, {
-                    "resource-id": e.id
-                }, null, 8, ["resource-id"])])], 64))])])]),
-                _: 1
-            }, 8, ["resources"]), q(R, {
-                draggable: !0,
-                modelValue: t.value,
-                "onUpdate:modelValue": r[4] || (r[4] = e => t.value = e),
-                title: "购买",
-                width: "350",
-                "align-center": "",
-                onClosed: w
-            }, {
-                footer: Y( () => [A("div", l8, [q(c, {
-                    type: "primary",
-                    class: "w-full",
-                    disabled: !(a.value && l.value && a.value.userBuyCostSponsorPoint && b(a.value, l.value.count)),
-                    onClick: r[3] || (r[3] = e => (t.value = !1,
-                    void (a.value && l.value && ip("shop:buyFromSponsorShop", {
-                        buyInfo: {
-                            id: a.value.id,
-                            count: l.value.count
-                        }
-                    }))))
-                }, {
-                    default: Y( () => r[35] || (r[35] = [G(" 确认购买 ", -1)])),
-                    _: 1,
-                    __: [35]
-                }, 8, ["disabled"])])]),
-                default: Y( () => {
-                    return [a.value && a.value.userBuyCostSponsorPoint ? (M(),
-                    L("div", H2, [A("div", Y2, [r[27] || (r[27] = A("span", null, "购买：", -1)), q(S, {
-                        "resource-id": a.value.id
-                    }, null, 8, ["resource-id"])]), !a.value.maxBuyCount || a.value.maxBuyCount > 1 ? (M(),
-                    L("div", K2, [r[28] || (r[28] = A("span", {
-                        class: "whitespace-nowrap"
-                    }, "数量：", -1)), q(v, {
-                        size: "small",
-                        "controls-position": "right",
-                        modelValue: l.value.count,
-                        "onUpdate:modelValue": r[2] || (r[2] = e => l.value.count = e),
-                        min: 1,
-                        max: (e = a.value,
-                        e?.userBuyCostSponsorPoint ? h(e) ? 0 : e.maxBuyCount ? Math.min(e.maxBuyCount, Math.floor(p.value.current / e.userBuyCostSponsorPoint)) : Math.floor(p.value.current / e.userBuyCostSponsorPoint) : 0),
-                        step: 1,
-                        "step-strictly": !0
-                    }, null, 8, ["modelValue", "max"])])) : P("", !0), A("div", null, [r[30] || (r[30] = A("span", null, "消耗积分：", -1)), A("div", X2, [A("span", null, [A("span", Q2, O(k.value), 1), r[29] || (r[29] = G(" 积分 ", -1))])])]), A("div", null, [r[32] || (r[32] = A("span", null, "购买后剩余：", -1)), A("div", J2, [A("span", null, [A("span", Z2, O(_.value), 1), r[31] || (r[31] = G(" 积分 ", -1))])])]), l.value?.id ? (M(),
-                    L("div", e8, [r[33] || (r[33] = A("span", null, "库存内现有此物品数量：", -1)), G(" " + O(m.value), 1)])) : P("", !0), a.value.onUse ? (M(),
-                    L("div", t8, r[34] || (r[34] = [A("div", {
-                        class: "text-xs"
-                    }, "购买后别忘记在仓库中使用哦～", -1)]))) : P("", !0)])) : P("", !0)];
-                    var e
-                }
-                ),
-                _: 1
-            }, 8, ["modelValue"])], 64)
-        }
-    }
-}), [["__scopeId", "data-v-6f318884"]])
+
   , s8 = V({
     __name: "Full",
     setup(e) {
@@ -35269,7 +34846,6 @@ const e0 = {
               , o = Ue
               , d = Y1
               , c = k2
-              , m = a8
               , p = we;
             return M(),
             H(p, {
@@ -35330,12 +34906,6 @@ const e0 = {
                         name: "cute_point"
                     }, {
                         default: Y( () => [q(c)]),
-                        _: 1
-                    }), q(r, {
-                        label: "赞助积分",
-                        name: "sponsor_point"
-                    }, {
-                        default: Y( () => [q(m)]),
                         _: 1
                     })]),
                     _: 1
@@ -37781,7 +37351,7 @@ const e0 = {
                     class: "text-gray-700 mb-2"
                 }, "镇中心是玩家交易与交互的核心。市场用于即时交易，拍卖行处理竞价，商业街为玩家自营店铺。"), A("ul", {
                     class: "list-disc pl-5 space-y-1 text-gray-800"
-                }, [A("li", null, "市场：快速买卖基础资源（价格阶梯与手续费）"), A("li", null, "拍卖行：稀有物品竞价与一口价"), A("li", null, "商业街：上架自己的商品，赚取金币")])]), A("section", {
+                }, [A("li", null, "市场：快速买卖基础资源（价格阶梯与手续费）"), A("li", null, "拍卖行：稀有物品竞价与一口价"), A("li", null, "商业街：上架自己的商品，赚取猫爪古钱币")])]), A("section", {
                     class: "bg-white border border-gray-200 rounded-xl p-4 shadow"
                 }, [A("h2", {
                     class: "text-base font-semibold mb-2"
@@ -40040,7 +39610,7 @@ const e0 = {
             buildingType: ""
         })
           , r = e
-          , n = E( () => "battlePyreAltar" === r.building.type)
+          , n = E( () => false)
           , i = E( () => "catVillageMonument" === r.building.type)
           , u = B(!1)
           , o = E( () => wp[r.building.type] || {})
@@ -48838,13 +48408,94 @@ const Kne = {
           , m = B(!1)
           , p = B()
           , f = B(!1)
-          , v = E( () => u.value.find(e => "diy" == e.key && "chatBubble" == e.type));
-        let g, y;
+          , v = E( () => u.value.find(e => "diy" == e.key && "chatBubble" == e.type))
+          , styleLoaded = B(!1);
+        let g, y, w, I, R, V, styleBaselineSnapshot, styleGetRequestId, styleGetTimer, styleSaveTimer, styleWatchOff, styleAttemptSequence = 0, styleEditGeneration = 0, styleBaselineGeneration = 0, styleDisposed = !1, styleApplyingDraft = !1;
+        function S(e, t) {
+            return !!e && !!t && ["currentBattleCardStyle", "currentChatContentStyle", "currentChatNameStyle", "currentProfileStyle", "currentChatBubbleStyle", "currentAvatarBorder"].every(l => e[l] === t[l]) && JSON.stringify(e.diyChatBubbleStyle || {}) === JSON.stringify(t.diyChatBubbleStyle || {})
+        }
+        function U(e) {
+            const t = {};
+            for (const l of ["currentBattleCardStyle", "currentChatContentStyle", "currentChatNameStyle", "currentProfileStyle", "currentChatBubbleStyle", "currentAvatarBorder"])
+                t[l] = e[l];
+            return t.diyChatBubbleStyle = d(e.diyChatBubbleStyle || {}),
+            t
+        }
+        function styleDraftIsClean() {
+            return !!styleBaselineSnapshot && styleEditGeneration === styleBaselineGeneration && S(U(o.value), U(styleBaselineSnapshot))
+        }
+        function styleHydrate(e) {
+            styleApplyingDraft = !0,
+            o.value = d(e),
+            styleApplyingDraft = !1
+        }
+        function C(e, t=!1) {
+            const l = d(e.style)
+              , a = styleDraftIsClean();
+            i.value = l,
+            V = Number.isSafeInteger(l.version) ? l.version : V,
+            (t || a) && (styleHydrate(l),
+            styleBaselineSnapshot = d(l),
+            styleBaselineGeneration = styleEditGeneration)
+        }
+        function styleMarkEdited() {
+            styleApplyingDraft || (styleEditGeneration += 1)
+        }
+        function styleFinishAttempt() {
+            styleSaveTimer && clearTimeout(styleSaveTimer),
+            styleSaveTimer = void 0,
+            I = void 0,
+            m.value = !1
+        }
+        function styleRequestGet() {
+            styleGetTimer && clearTimeout(styleGetTimer),
+            styleGetRequestId = phaseOneRequestId("style-get"),
+            styleLoaded.value = !1,
+            dR(s.value.uuid, styleGetRequestId);
+            const e = styleGetRequestId;
+            styleGetTimer = setTimeout( () => {
+                !styleDisposed && styleGetRequestId === e && (styleGetRequestId = void 0,
+                styleLoaded.value = !1,
+                Jx({
+                    title: "获取样式失败",
+                    type: "error",
+                    message: "请求超时，请重试",
+                    duration: 1800
+                }))
+            }
+            , 15e3),
+            styleGetTimer.unref?.()
+        }
         function x(e) {
-            e.isTrusted && (ip("style:setAll", {
-                style: o.value
+            if (!e.isTrusted || !styleLoaded.value || m.value || !Number.isSafeInteger(V))
+                return;
+            const t = U(o.value)
+              , l = phaseOneRequestId("style-set")
+              , a = ++styleAttemptSequence;
+            I = {
+                requestId: l,
+                snapshot: d(t),
+                editGeneration: styleEditGeneration,
+                sequence: a
+            },
+            m.value = !0,
+            phaseOneEmit("style:setAll", {
+                style: t,
+                expectedVersion: V,
+                requestId: l
             }),
-            ine(c.value))
+            styleSaveTimer && clearTimeout(styleSaveTimer),
+            styleSaveTimer = setTimeout( () => {
+                !styleDisposed && m.value && I?.sequence === a && (styleFinishAttempt(),
+                Jx({
+                    title: "样式设置失败",
+                    type: "error",
+                    message: "保存超时，请重试",
+                    duration: 1800
+                }))
+            }
+            , 15e3),
+            styleSaveTimer.unref?.()
         }
         function b() {
             f.value = !0
@@ -48862,39 +48513,97 @@ const Kne = {
                 duration: 1800
             })
         }
+        styleWatchOff = r6WatchDraft(o, () => {
+            styleMarkEdited()
+        }
+        , {
+            deep: !0,
+            flush: "sync"
+        });
         return $(async () => {
-            await np(),
+            await np();
+            if (styleDisposed)
+                return;
+            w = cR(e => {
+                if (!styleGetRequestId || e?.uuid !== s.value.uuid || e?.requestId !== styleGetRequestId)
+                    return;
+                styleGetTimer && clearTimeout(styleGetTimer),
+                styleGetTimer = void 0,
+                styleGetRequestId = void 0;
+                const t = styleBaselineSnapshot ? styleDraftIsClean() : 0 === styleEditGeneration;
+                C(e, t),
+                styleBaselineSnapshot || (styleBaselineSnapshot = d(e.style)),
+                styleLoaded.value = !0
+            }
+            ),
+            R = qPe(e => {
+                styleGetRequestId && e?.requestId === styleGetRequestId && (!e?.uuid || e.uuid === s.value.uuid) && (styleGetTimer && clearTimeout(styleGetTimer),
+                styleGetTimer = void 0,
+                styleGetRequestId = void 0,
+                styleLoaded.value = !1,
+                Jx({
+                    title: "获取样式失败",
+                    type: "error",
+                    message: e.message,
+                    duration: 1800
+                }))
+            }
+            ),
             g = mR(async e => {
-                i.value = e.style,
+                const t = I
+                  , l = !!t && e?.requestId === t.requestId;
+                C(e),
+                l && (styleFinishAttempt(),
+                t.editGeneration === styleEditGeneration && S(U(o.value), t.snapshot) && (styleHydrate(e.style),
+                styleBaselineSnapshot = d(e.style),
+                styleBaselineGeneration = styleEditGeneration),
                 Jx({
                     title: "样式设置成功",
                     type: "success",
                     duration: 1800
-                });
-                const t = s.value.uuid;
-                let l = await $fetch("/api/game/user/profile", {
+                }));
+                if (!l)
+                    return;
+                const a = s.value.uuid;
+                let r = await $fetch("/api/game/user/profile", {
                     method: "GET",
                     query: {
-                        uuid: t
+                        uuid: a
                     }
                 });
-                200 === l.code && "data"in l && l.data.uuid == t && (n.value[t] = l.data,
+                200 === r.code && "data"in r && r.data.uuid == a && (n.value[a] = r.data,
                 n.value = d(n.value))
             }
             ),
             y = pR(e => {
+                if (!m.value || !I || e?.requestId !== I.requestId)
+                    return;
+                const t = I;
+                "VERSION_CONFLICT" === e.code && e.state && C({
+                    style: e.state
+                }),
+                styleFinishAttempt(),
                 Jx({
-                    title: "样式设置失败",
+                    title: "VERSION_CONFLICT" === e.code ? "样式已在其他页面更新" : "样式设置失败",
                     type: "error",
                     message: e.message,
                     duration: 1800
                 })
             }
             ),
-            dR()
+            styleRequestGet()
         }
         ),
         X( () => {
+            styleDisposed = !0,
+            styleGetTimer && clearTimeout(styleGetTimer),
+            styleSaveTimer && clearTimeout(styleSaveTimer),
+            styleGetRequestId = void 0,
+            styleAttemptSequence += 1,
+            styleFinishAttempt(),
+            styleWatchOff?.(),
+            w?.(),
+            R?.(),
             g?.(),
             y?.()
         }
@@ -49058,12 +48767,13 @@ const Kne = {
                     default: Y( () => [A("div", Mie, [q(n, {
                         type: "primary",
                         onClick: x,
+                        disabled: !styleLoaded.value || m.value,
                         loading: m.value
                     }, {
                         default: Y( () => t[8] || (t[8] = [G("保存", -1)])),
                         _: 1,
                         __: [8]
-                    }, 8, ["loading"]), q(n, {
+                    }, 8, ["disabled", "loading"]), q(n, {
                         onClick: t[4] || (t[4] = t => e.$emit("cancel"))
                     }, {
                         default: Y( () => t[9] || (t[9] = [G("取消", -1)])),
@@ -60235,37 +59945,6 @@ const tge = {
         }
     }
 })
-  , zge = l({}, [["render", function(e, t) {
-    const l = we;
-    return M(),
-    H(l, {
-        class: "p-6"
-    }, {
-        default: Y( () => t[0] || (t[0] = [A("div", {
-            class: "flex flex-col items-center mt-4"
-        }, [A("div", {
-            class: "flex flex-row items-center justify-center flex-wrap gap-4"
-        }), A("h3", {
-            class: "text-xl font-semibold mb-2"
-        }, "成为我们的赞助者"), A("p", {
-            class: "text-gray-600 dark:text-gray-300 text-center mb-4"
-        }, " 感谢您的支持！每一份赞助都是我们持续优化和维护项目的动力。 "), A("a", {
-            href: "https://afdian.com/a/moyu-idle",
-            target: "_blank",
-            rel: "noreferrer",
-            class: "inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-400 to-pink-500 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5"
-        }, [A("span", {
-            class: "text-sm font-semibold"
-        }, "去爱发电支持"), A("span", {
-            class: "text-lg"
-        }, "⟡")]), A("p", {
-            class: "text-xs text-gray-600 text-center mt-8"
-        }, " 赞助现不再单独在游戏内提供赞助积分 ")], -1)])),
-        _: 1,
-        __: [0]
-    })
-}
-]])
   , jge = {
     key: 0,
     class: "flex flex-col items-center py-4"
@@ -65252,7 +64931,7 @@ const vbe = up("guildBuildingEffect:guildGrandBathhouse:success")
                     for (const l of t.category)
                         e[l] || (e[l] = []),
                         e[l].push(t);
-            return _(Ot).filter(t => e[t] && e[t].length).map(t => ({
+            return personalizationCategoryOrder(s.value).filter(t => e[t] && e[t].length).map(t => ({
                 category: t,
                 resources: e[t]
             }))
@@ -65280,21 +64959,56 @@ const vbe = up("guildBuildingEffect:guildGrandBathhouse:success")
             t
         }
         );
+        let resourceDisposed = !1, resourceGetRequestId, resourceGetTimer, resourceGetOff, resourceSetOff, resourceErrorOff;
+        function resourceRequestGet() {
+            resourceGetTimer && clearTimeout(resourceGetTimer),
+            resourceGetRequestId = phaseOneRequestId("resource-personalization-get"),
+            yD(resourceGetRequestId);
+            const e = resourceGetRequestId;
+            resourceGetTimer = setTimeout( () => {
+                !resourceDisposed && resourceGetRequestId === e && (resourceGetRequestId = void 0)
+            }
+            , 15e3),
+            resourceGetTimer.unref?.()
+        }
         return $(async () => {
-            await np(),
+            await np();
+            if (resourceDisposed)
+                return;
             r_(),
-            yD(),
-            xD(e => {
+            resourceGetOff = xD(e => {
+                if (resourceDisposed || !resourceGetRequestId || e?.requestId !== resourceGetRequestId)
+                    return;
+                resourceGetTimer && clearTimeout(resourceGetTimer),
+                resourceGetTimer = void 0,
+                resourceGetRequestId = void 0,
                 a.value = e.favoriteItems || [],
-                s.value = e.categoryOrder || []
+                s.value = personalizationCategoryOrder(e.categoryOrder)
             }
             ),
-            bD(e => {
-                a.value = e.favoriteItems || []
+            resourceSetOff = bD(e => {
+                if (resourceDisposed)
+                    return;
+                a.value = e.favoriteItems || [],
+                s.value = personalizationCategoryOrder(e.categoryOrder)
             }
             ),
-            hD(e => {}
-            )
+            resourceErrorOff = hD(e => {
+                resourceGetRequestId && e?.requestId === resourceGetRequestId && (resourceGetTimer && clearTimeout(resourceGetTimer),
+                resourceGetTimer = void 0,
+                resourceGetRequestId = void 0)
+            }
+            ),
+            resourceRequestGet()
+        }
+        ),
+        X( () => {
+            resourceDisposed = !0,
+            resourceGetTimer && clearTimeout(resourceGetTimer),
+            resourceGetRequestId = void 0,
+            resourceGetOff?.(),
+            resourceSetOff?.(),
+            resourceErrorOff?.()
         }
         ),
         (e, t) => {
@@ -65323,15 +65037,12 @@ const vbe = up("guildBuildingEffect:guildGrandBathhouse:success")
                     label: "🗡️战斗装备",
                     name: "battleEquipment"
                 }), (M(!0),
-                L(z, null, W(T(Ot), (e, t) => (M(),
-                L(z, {
-                    key: t
-                }, [t != T(Ft).Custom ? (M(),
+                L(z, null, W(personalizationCategoryOrder(T(s)), t => (M(),
                 H(l, {
-                    key: 0,
-                    label: `${e.icon} ${e.name}`,
+                    key: t,
+                    label: `${T(Ot)[t].icon} ${T(Ot)[t].name}`,
                     name: t
-                }, null, 8, ["label", "name"])) : P("", !0)], 64))), 128))]),
+                }, null, 8, ["label", "name"]))), 128))]),
                 _: 1
             }, 8, ["modelValue"])])]), A("div", Jhe, [["all", "usable"].includes(T(n)) && T(o).length ? (M(!0),
             L(z, {
@@ -67361,7 +67072,6 @@ const vbe = up("guildBuildingEffect:guildGrandBathhouse:success")
     }
 }), [["__scopeId", "data-v-00aad29a"]])
   , Iwe = he( () => u( () => import("./Index-BbYUwJsP.js"), __vite__mapDeps([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]), import.meta.url).then(e => e.default || e))
-  , Uwe = he( () => u( () => import("./Index-BfMvpylr.js"), __vite__mapDeps([27, 1, 2, 3, 4, 5, 6, 7, 17, 18, 15, 8, 9, 10, 11, 12, 13, 14, 16, 19, 20, 21, 22, 23, 24, 25, 28]), import.meta.url).then(e => e.default || e))
   , Swe = {
     key: 0,
     class: "socket-disconnected-banner",
@@ -67582,6 +67292,7 @@ const vbe = up("guildBuildingEffect:guildGrandBathhouse:success")
             h.value || (k.value = !0)
         }
         Pg.on("enhance-item", e => {
+            return;
             Ve("enhance"),
             J.value = e.itemId,
             setTimeout( () => {
@@ -67647,7 +67358,8 @@ const vbe = up("guildBuildingEffect:guildGrandBathhouse:success")
             }, {
                 index: "fishing",
                 icon: "game-icons:fishing-boat",
-                title: "垂钓"
+                title: "垂钓",
+                visible: () => false
             }, {
                 index: "cattery",
                 icon: "game-icons:cat",
@@ -67658,7 +67370,7 @@ const vbe = up("guildBuildingEffect:guildGrandBathhouse:success")
                 index: "tavern",
                 icon: "game-icons:tavern-sign",
                 title: "酒馆",
-                visible: () => o.value,
+                visible: () => false,
                 class: "special-item"
             }, {
                 index: "building",
@@ -67710,6 +67422,7 @@ const vbe = up("guildBuildingEffect:guildGrandBathhouse:success")
             index: "expedition",
             icon: "game-icons:mountain-road",
             title: "猫咪探险",
+            visible: () => false,
             class: "battle-item"
         }, {
             type: "divider"
@@ -67717,7 +67430,8 @@ const vbe = up("guildBuildingEffect:guildGrandBathhouse:success")
             type: "item",
             index: "enhance",
             icon: "game-icons:upgrade",
-            title: "强化"
+            title: "强化",
+            visible: () => false
         }, {
             type: "item",
             index: "dismantle",
@@ -67727,7 +67441,8 @@ const vbe = up("guildBuildingEffect:guildGrandBathhouse:success")
             type: "item",
             index: "mysterious",
             icon: "game-icons:paw-print",
-            title: "炼金"
+            title: "炼金",
+            visible: () => false
         }, {
             type: "divider"
         }, ...Object.values(x).map( (e, t) => ({
@@ -67788,20 +67503,6 @@ const vbe = up("guildBuildingEffect:guildGrandBathhouse:success")
             onClick: () => {
                 window.open("https://wj.qq.com/s2/22648177/5999/", "_blank")
             }
-        }, {
-            type: "item",
-            index: "gm",
-            icon: "material-symbols:support-agent-rounded",
-            title: "GM",
-            visible: () => ke.value,
-            class: "gm-item"
-        }, {
-            type: "item",
-            index: "sponsor",
-            icon: "material-icon-theme:github-sponsors",
-            title: "赞助作者",
-            visible: () => false,
-            class: "sponsor-item"
         }, {
             type: "item",
             index: "serverNotices",
@@ -67970,8 +67671,7 @@ const vbe = up("guildBuildingEffect:guildGrandBathhouse:success")
         }
         )();
         xe();
-        const ke = E( () => te.value?.isGm)
-          , Ce = () => {
+        const Ce = () => {
             location.reload()
         }
           , Ue = Wa()
@@ -68064,13 +67764,11 @@ const vbe = up("guildBuildingEffect:guildGrandBathhouse:success")
               , He = Bme
               , Ye = Wve
               , Ke = Dge
-              , Xe = zge
               , Qe = Whe
               , Je = Yhe
               , Ze = swe
               , et = bx
               , tt = __
-              , lt = Uwe
               , at = Tt
               , st = kwe
               , rt = Et
@@ -68371,9 +68069,6 @@ const vbe = up("guildBuildingEffect:guildGrandBathhouse:success")
                             })) : P("", !0), "expedition" == g.value ? (M(),
                             H(Ke, {
                                 key: 25
-                            })) : P("", !0), "sponsor" == g.value ? (M(),
-                            H(Xe, {
-                                key: 26
                             })) : P("", !0), "guild" == g.value ? (M(),
                             H(Qe, {
                                 key: 27
@@ -68404,9 +68099,6 @@ const vbe = up("guildBuildingEffect:guildGrandBathhouse:success")
                             })) : P("", !0)], 64))), 64)), "farmingPlant" == g.value ? (M(),
                             H(tt, {
                                 key: 30
-                            })) : P("", !0), "gm" == g.value && ke.value ? (M(),
-                            H(lt, {
-                                key: 31
                             })) : P("", !0)])]),
                             _: 1
                         }), P("聊天暂时关闭", !0)]),
@@ -68505,7 +68197,7 @@ const vbe = up("guildBuildingEffect:guildGrandBathhouse:success")
 }, Symbol.toStringTag, {
     value: "Module"
 }));
-export {YI as $, tI as A, QI as B, ZI as C, XI as D, JI as E, nI as F, iI as G, nf as H, rI as I, _U as J, wU as K, cf as L, df as M, of as N, uf as O, Jx as P, kU as Q, bI as R, hI as S, kI as T, xI as U, CI as V, II as W, wI as X, qI as Y, $I as Z, Ep as _, Hg as a, KI as a0, GI as a1, WI as a2, TM as a3, FI as a4, HI as a5, NI as a6, tU as a7, lU as a8, sU as a9, VI as aA, TI as aB, DI as aC, jI as aD, OI as aE, AI as aF, zI as aG, iU as aH, uU as aI, nU as aJ, gCe as aK, rU as aa, eU as ab, aU as ac, mI as ad, pI as ae, cI as af, dU as ag, cU as ah, pU as ai, fU as aj, gU as ak, yU as al, bU as am, hU as an, oU as ao, mU as ap, vU as aq, xU as ar, SI as as, RI as at, BI as au, EI as av, MI as aw, PI as ax, UI as ay, LI as az, yx as b, rw as c, uw as d, ew as e, Fw as f, Q_ as g, nw as h, ow as i, dw as j, aw as k, sw as l, lw as m, aI as n, Z_ as o, sI as p, lI as q, oI as r, dI as s, uI as t, rf as u, vI as v, np as w, gI as x, yI as y, fI as z};
+export {nf as H, cf as L, df as M, of as N, uf as O, Jx as P, Ep as _, Hg as a, TM as a3, gCe as aK, yx as b, rw as c, uw as d, ew as e, Fw as f, Q_ as g, nw as h, ow as i, dw as j, aw as k, sw as l, lw as m, Z_ as o, rf as u, np as w};
 
 // Subscribe before sending. Keep the original mount pending on failure, with
 // an explicit retry; do not enter the game with an absent character snapshot.

@@ -1,0 +1,2600 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-19T06:59:06.697272+00:00",
+  "validator": "phase1-style-candidates/validate.py",
+  "pillowVersion": "12.3.0",
+  "checksPerformed": [
+    "decode",
+    "dimensions",
+    "format",
+    "alpha-channel",
+    "transparent-pixels",
+    "GIF-frame-count",
+    "GIF-motion",
+    "central-clearance-58-percent"
+  ],
+  "summary": {
+    "passed": true,
+    "assetRecords": 50,
+    "expectedAssetRecords": 50,
+    "assetRecordsPassed": 50,
+    "assetRecordsFailed": 0,
+    "contactSheets": 5,
+    "contactSheetsPassed": 5,
+    "contactSheetsFailed": 0,
+    "gifAssets": 8,
+    "centralClearanceAssets": 19,
+    "duplicateCandidatePaths": [],
+    "duplicateIdentityRecords": [],
+    "scopeFileCountBeforeReport": 60,
+    "scopeBytesBeforeReport": 7644871
+  },
+  "assets": [
+    {
+      "key": "cute_cat_1",
+      "category": "chatBubble",
+      "variant": "runtime",
+      "path": "chat-bubbles/runtime/cute_cat_1.png",
+      "targetLogicalPath": "assets/png/cute_cat_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 33929,
+      "sha256": "7d5c2ffaa5815cb8bbfe87987dc8b9da8aa3682fa5c463f614dddee5f5ea2f7a",
+      "actual": {
+        "width": 640,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "cute_cat_1",
+      "category": "chatBubble",
+      "variant": "preview",
+      "path": "chat-bubbles/preview/cute_cat_1.png",
+      "targetLogicalPath": "/static/images/preview/chatBubble_cute_cat_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 51616,
+      "sha256": "87c835c9baf369edf5f9ca1df96999c45cd626a968cdfbad77a0e1d051a31553",
+      "actual": {
+        "width": 800,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            48,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "cute_cat_2",
+      "category": "chatBubble",
+      "variant": "runtime",
+      "path": "chat-bubbles/runtime/cute_cat_2.png",
+      "targetLogicalPath": "assets/png/cute_cat_2.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 34964,
+      "sha256": "9c3f9ff68dfbdfbfee2ecf88aa60cdfb6c25a87912966763614f167c62a2a0a8",
+      "actual": {
+        "width": 640,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "cute_cat_2",
+      "category": "chatBubble",
+      "variant": "preview",
+      "path": "chat-bubbles/preview/cute_cat_2.png",
+      "targetLogicalPath": "/static/images/preview/chatBubble_cute_cat_2.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 56001,
+      "sha256": "b353789cabe92cfb066f543618b4615a8d503396c870cdd3d76b85cb044c67de",
+      "actual": {
+        "width": 800,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            48,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "dark_mag_1",
+      "category": "chatBubble",
+      "variant": "runtime",
+      "path": "chat-bubbles/runtime/dark_mag_1.png",
+      "targetLogicalPath": "assets/png/dark_mag_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 42905,
+      "sha256": "91657a81883ffc7dc33fb72416f4e0925e39ad1b182746e7607edd2c0a29ab8f",
+      "actual": {
+        "width": 640,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "dark_mag_1",
+      "category": "chatBubble",
+      "variant": "preview",
+      "path": "chat-bubbles/preview/dark_mag_1.png",
+      "targetLogicalPath": "/static/images/preview/chatBubble_dark_mag_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 52468,
+      "sha256": "ff886013ef7910f88178bef80c40be529f8a39924e52eaafa157b4f8ddd3b571",
+      "actual": {
+        "width": 800,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            48,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "kitty_1",
+      "category": "chatBubble",
+      "variant": "runtime",
+      "path": "chat-bubbles/runtime/kitty_1.png",
+      "targetLogicalPath": "assets/png/kitty_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 32945,
+      "sha256": "2977ee5d401219414ee45c5af2aaa8acc300307d2bf5434cb354f37486f8935a",
+      "actual": {
+        "width": 640,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "kitty_1",
+      "category": "chatBubble",
+      "variant": "preview",
+      "path": "chat-bubbles/preview/kitty_1.png",
+      "targetLogicalPath": "/static/images/preview/chatBubble_kitty_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 49352,
+      "sha256": "6b662f578b3b98926ad7483a6ea243ccb8a88d8356fa3fcc1ef7cf3ea11f97e1",
+      "actual": {
+        "width": 800,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            48,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "moon_1",
+      "category": "chatBubble",
+      "variant": "runtime",
+      "path": "chat-bubbles/runtime/moon_1.png",
+      "targetLogicalPath": "assets/png/moon_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 37867,
+      "sha256": "d9b5c744987184a4e7c91f417f28f26540129ef3bf8abc2641cbf7d8ba77f343",
+      "actual": {
+        "width": 640,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "moon_1",
+      "category": "chatBubble",
+      "variant": "preview",
+      "path": "chat-bubbles/preview/moon_1.png",
+      "targetLogicalPath": "/static/images/preview/chatBubble_moon_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 56140,
+      "sha256": "35683b70bb332253bef61d95bf814f38369dd9d0a50c5e2fb49c745fa52092c3",
+      "actual": {
+        "width": 800,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            48,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "ninja_cat_1",
+      "category": "chatBubble",
+      "variant": "runtime",
+      "path": "chat-bubbles/runtime/ninja_cat_1.png",
+      "targetLogicalPath": "assets/png/ninja_cat_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 36015,
+      "sha256": "ba41fdb6876d29e1eb7d0d3e789459bf2faf4fb0dd225e0de769d32328b6ddd3",
+      "actual": {
+        "width": 640,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "ninja_cat_1",
+      "category": "chatBubble",
+      "variant": "preview",
+      "path": "chat-bubbles/preview/ninja_cat_1.png",
+      "targetLogicalPath": "/static/images/preview/chatBubble_ninja_cat_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 48672,
+      "sha256": "d2d9b9164619b3cf0e88400dfec60f91b25a7c2a85984940a4cfab4ee7ead8cf",
+      "actual": {
+        "width": 800,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            48,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "star_1",
+      "category": "chatBubble",
+      "variant": "runtime",
+      "path": "chat-bubbles/runtime/star_1.png",
+      "targetLogicalPath": "assets/png/star_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 42151,
+      "sha256": "464c09e36acde8be8fb0ea7af3a74ddb817197247290ca54306253b61ae9ed11",
+      "actual": {
+        "width": 640,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "star_1",
+      "category": "chatBubble",
+      "variant": "preview",
+      "path": "chat-bubbles/preview/star_1.png",
+      "targetLogicalPath": "/static/images/preview/chatBubble_star_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 55159,
+      "sha256": "e6bb61622350e2e20ba501611e051ef2b5ea9fe11df8805bddb4410acfe80ac0",
+      "actual": {
+        "width": 800,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            48,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "wangzong",
+      "category": "profileBackground",
+      "variant": "runtime-candidate",
+      "path": "profile-backgrounds/wangzong.png",
+      "targetLogicalPath": "/static/images/wangzong_profile_bg_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 110209,
+      "sha256": "b16df8ba434f3239110bafd0fb48cbf4dcc68efb9bde07b7052ba37ecc99b83a",
+      "actual": {
+        "width": 1200,
+        "height": 720,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            43,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "yixiao",
+      "category": "profileBackground",
+      "variant": "runtime-candidate",
+      "path": "profile-backgrounds/yixiao.png",
+      "targetLogicalPath": "/static/images/yixiao_profile_bg_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 237436,
+      "sha256": "052c1234c7dfa9b426be804182278e5f677e27406b28590a972acfd2359c32b1",
+      "actual": {
+        "width": 1200,
+        "height": 720,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            33,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "fishing_1",
+      "category": "profileBackground",
+      "variant": "runtime-candidate",
+      "path": "profile-backgrounds/fishing_1.png",
+      "targetLogicalPath": "/static/images/fishing_profile_bg_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 128701,
+      "sha256": "442baee009b1370450736accfbd76949299d51467ea8048b2a4dfc92a2cbd2d7",
+      "actual": {
+        "width": 1200,
+        "height": 720,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            16,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "night_ninja_1",
+      "category": "profileBackground",
+      "variant": "runtime-candidate",
+      "path": "profile-backgrounds/night_ninja_1.png",
+      "targetLogicalPath": "/static/images/night_ninja_profile_bg_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 113141,
+      "sha256": "1ff4f3e4f046602eb9b130fb53d743937133c13483ec04cab0aef1a2acf22dbe",
+      "actual": {
+        "width": 1200,
+        "height": 720,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            138,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "cute_kitty_1",
+      "category": "profileBackground",
+      "variant": "runtime-candidate",
+      "path": "profile-backgrounds/cute_kitty_1.png",
+      "targetLogicalPath": "/static/images/cute_profile_bg_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 119169,
+      "sha256": "1f0eb136fb610b6470c868525f0529024dc919b968b2268f4a281e9d5cf95132",
+      "actual": {
+        "width": 1200,
+        "height": 720,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            158,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "warrior",
+      "category": "battleStyle",
+      "variant": "transparent-avatar",
+      "path": "battle/avatars/warrior.png",
+      "targetLogicalPath": "assets/png/avatarBattleUnitCard_Warrior.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 84643,
+      "sha256": "5255315a6805c10b488c6543cae79a73df9082ed51e161aadc3203fb3eddc7ec",
+      "actual": {
+        "width": 550,
+        "height": 550,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "warrior",
+      "category": "battleStyle",
+      "variant": "scene",
+      "path": "battle/scenes/warrior.png",
+      "targetLogicalPath": "assets/png/battleUnitCard_warrior.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 136311,
+      "sha256": "7a9b0160c474eb9439949994ca2e6804b10fc9459f853be2c60c9e298722904d",
+      "actual": {
+        "width": 1152,
+        "height": 864,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            41,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "magical",
+      "category": "battleStyle",
+      "variant": "transparent-avatar",
+      "path": "battle/avatars/magical.png",
+      "targetLogicalPath": "assets/png/avatarBattleUnitCard_Magical.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 85346,
+      "sha256": "75b539362f786f3bdd0d35115ac691a341d15417a99e12744ce77b9f4b084efb",
+      "actual": {
+        "width": 550,
+        "height": 550,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "magical",
+      "category": "battleStyle",
+      "variant": "scene",
+      "path": "battle/scenes/magical.png",
+      "targetLogicalPath": "assets/png/battleUnitCard_magical.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 189486,
+      "sha256": "4e3972e08e31529e77d3b018e286610183fd6bf39dace2cd3e909129366761b0",
+      "actual": {
+        "width": 1152,
+        "height": 864,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            43,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "cleric",
+      "category": "battleStyle",
+      "variant": "transparent-avatar",
+      "path": "battle/avatars/cleric.png",
+      "targetLogicalPath": "assets/png/avatarBattleUnitCard_Cleric.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 89030,
+      "sha256": "ea8aace3d55af583efc127c36e44adecb4a9ea2a985fd86c749321c059f43c8a",
+      "actual": {
+        "width": 550,
+        "height": 550,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "cleric",
+      "category": "battleStyle",
+      "variant": "scene",
+      "path": "battle/scenes/cleric.png",
+      "targetLogicalPath": "assets/png/battleUnitCard_cleric.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 153629,
+      "sha256": "7b62b3c9e6b147ee2b5f77bd52cc4dacc6fbd668d689868095f7b5eb2e1d1048",
+      "actual": {
+        "width": 1152,
+        "height": 864,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            45,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "ninja",
+      "category": "battleStyle",
+      "variant": "transparent-avatar",
+      "path": "battle/avatars/ninja.png",
+      "targetLogicalPath": "assets/png/avatarBattleUnitCard_Ninja.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 85523,
+      "sha256": "5f7d81f35587ac36d2d7e540341c21d3c8266cb2ee7de5a0aff92d4f4b5a0858",
+      "actual": {
+        "width": 550,
+        "height": 550,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "ninja",
+      "category": "battleStyle",
+      "variant": "scene",
+      "path": "battle/scenes/ninja.png",
+      "targetLogicalPath": "assets/png/battleUnitCard_ninja.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 142990,
+      "sha256": "40beb73bb88aab7c6ad41e239050b285586926f3bfb2b6543b626ffd4201f482",
+      "actual": {
+        "width": 1152,
+        "height": 864,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            39,
+            255
+          ]
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "kitty_head_1",
+      "category": "avatarBorder",
+      "variant": "static",
+      "path": "avatar-borders/static/kitty_head_1.png",
+      "targetLogicalPath": "assets/png/kitty_head_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 51160,
+      "sha256": "9f0388e82c9522a36f5efd8a5badf14ea146ef36177bc90193c2c0341bec0fae",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ],
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "bunny_1",
+      "category": "avatarBorder",
+      "variant": "static",
+      "path": "avatar-borders/static/bunny_1.png",
+      "targetLogicalPath": "assets/png/bunny_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 50875,
+      "sha256": "532b9f6d9baaaacdb2f64f49634796c2908ccf6cb9665da2aaa052d5c051815f",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ],
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "ghostBladeNebula",
+      "category": "avatarBorder",
+      "variant": "static",
+      "path": "avatar-borders/static/ghostBladeNebula.png",
+      "targetLogicalPath": "assets/png/ghostBladeNebula.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 56304,
+      "sha256": "0b54a50b005df035a1bd76f0f800a935ec7bf587112b56ba8a51e4497393e9d0",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ],
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "cuteParty",
+      "category": "avatarBorder",
+      "variant": "static",
+      "path": "avatar-borders/static/cuteParty.png",
+      "targetLogicalPath": "assets/png/cuteParty.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 53949,
+      "sha256": "cc7674aabb0efc042bde1318048a558da3f4bcd417fe1342dbdc2feb7a7f8b6e",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ],
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "kittyRing2",
+      "category": "avatarBorder",
+      "variant": "static",
+      "path": "avatar-borders/static/kittyRing2.png",
+      "targetLogicalPath": "assets/png/kitty_ring_2.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 50736,
+      "sha256": "a7a5ca7e71e1e98384f5fc45f56b1f7be88d3d95348e000a5002b620b0b7314e",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ],
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "20260203potato",
+      "category": "avatarBorder",
+      "variant": "static",
+      "path": "avatar-borders/static/20260203potato.png",
+      "targetLogicalPath": "assets/png/20260203potato.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 50976,
+      "sha256": "fd9390277153558f7df533affb5bc88abb4d0b6567fe88d15eb2c818e2f4b878",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ],
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "meowQuest",
+      "category": "avatarBorder",
+      "variant": "static",
+      "path": "avatar-borders/static/meowQuest.png",
+      "targetLogicalPath": "assets/png/meowQuest.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 56797,
+      "sha256": "f56875d70da9cfb763354449f281e984c41fbd729fc9f5da3c3104c9f2f3f3c1",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ],
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "privateDetective",
+      "category": "avatarBorder",
+      "variant": "static",
+      "path": "avatar-borders/static/privateDetective.png",
+      "targetLogicalPath": "assets/png/privateDetective.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 56075,
+      "sha256": "03f28a557390edc27afc495fba6516a7e7e7acec36ca83e2ce3f46eda2d39aa6",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ],
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "catVillageOverseer_1",
+      "category": "avatarBorder",
+      "variant": "static",
+      "path": "avatar-borders/static/catVillageOverseer_1.png",
+      "targetLogicalPath": "assets/png/catVillageOverseer_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 58250,
+      "sha256": "34752d3218d9986756842e47a67af221ac1fdd5c2d84ee17c629bc3fccc36d10",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ],
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "catVillageOverseer_2",
+      "category": "avatarBorder",
+      "variant": "static",
+      "path": "avatar-borders/static/catVillageOverseer_2.png",
+      "targetLogicalPath": "assets/png/catVillageOverseer_2.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 57177,
+      "sha256": "8a0a2afec973996e764a95664f82b8ec1c11e1b4d5952ac8c043f3dee58c267c",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ],
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "SpringFestivalLuckyCat2026",
+      "category": "avatarBorder",
+      "variant": "static",
+      "path": "avatar-borders/static/SpringFestivalLuckyCat2026.png",
+      "targetLogicalPath": "assets/png/SpringFestivalLuckyCat2026.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 50546,
+      "sha256": "702d59beb6c829b2ab11e4025b1c575f63cdcd4ee93d7b4cf3ec86c80bf62b3c",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ],
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "SpringFestival2026_1",
+      "category": "avatarBorder",
+      "variant": "static",
+      "path": "avatar-borders/static/SpringFestival2026_1.png",
+      "targetLogicalPath": "assets/png/SpringFestival2026_1.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 52382,
+      "sha256": "99d715a28c76ffbaf71ff0dbc20a2546197efb68e7d02ca2c3c974793b8f5b04",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ],
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "SpringFestival2026_LuckyHorseCat",
+      "category": "avatarBorder",
+      "variant": "static",
+      "path": "avatar-borders/static/SpringFestival2026_LuckyHorseCat.png",
+      "targetLogicalPath": "assets/png/SpringFestival2026_LuckyHorseCat.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 57228,
+      "sha256": "84af10a63654c01c33d5b3dc546f6b75c28256f4959f76dce1eed82ee3802864",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ],
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "holyPawsGospel",
+      "category": "avatarBorder",
+      "variant": "static",
+      "path": "avatar-borders/static/holyPawsGospel.png",
+      "targetLogicalPath": "assets/png/holyPawsGospel.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 56455,
+      "sha256": "f79736d78fdbc519011098c3b2bb35e4cfc7b7aad6c0f78bcf78ff3d42c165b2",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ],
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "emberClaw",
+      "category": "avatarBorder",
+      "variant": "static",
+      "path": "avatar-borders/static/emberClaw.png",
+      "targetLogicalPath": "assets/png/emberClaw.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 55360,
+      "sha256": "3cdf4068bfa1c94e975e0c9640f120895116c6b91b65ed0c8e490aad281a2955",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "PNG",
+        "mode": "RGBA",
+        "frames": 1,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ]
+        ],
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "SpringFestival2026_12",
+      "category": "avatarBorder",
+      "variant": "animated-review-gif",
+      "path": "avatar-borders/animated/SpringFestival2026_12.gif",
+      "targetLogicalPath": "assets/webm/t_avatarBorder_SpringFestival2026_12.webm",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "gifFrameCount": true,
+        "gifHasMotion": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 221871,
+      "sha256": "ea44b71ea84466f6490ad26ad1e0114525db78bba5a8a7e373ea5e62dbf5a451",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "GIF",
+        "mode": "P",
+        "frames": 12,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ]
+        ],
+        "framesDifferentFromFirst": 11,
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "SpringFestival2026_LuckyHorseCat2",
+      "category": "avatarBorder",
+      "variant": "animated-review-gif",
+      "path": "avatar-borders/animated/SpringFestival2026_LuckyHorseCat2.gif",
+      "targetLogicalPath": "assets/webm/SpringFestival2026_LuckyHorseCat.webm",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "gifFrameCount": true,
+        "gifHasMotion": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 224752,
+      "sha256": "44dbcd86bbb2e129ba5bbfa05642eb4c1b5ffccc2782ff5c3c30a17e68adb888",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "GIF",
+        "mode": "P",
+        "frames": 12,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ]
+        ],
+        "framesDifferentFromFirst": 11,
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "slumberCat",
+      "category": "avatarBorder",
+      "variant": "animated-review-gif",
+      "path": "avatar-borders/animated/slumberCat.gif",
+      "targetLogicalPath": "assets/webm/slumberCat.webm",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "gifFrameCount": true,
+        "gifHasMotion": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 201621,
+      "sha256": "b30aada9964efa46f32f324044def8ae39336848d7ee1a567e4a4af155f41b7e",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "GIF",
+        "mode": "P",
+        "frames": 12,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ]
+        ],
+        "framesDifferentFromFirst": 11,
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "catMercante",
+      "category": "avatarBorder",
+      "variant": "animated-review-gif",
+      "path": "avatar-borders/animated/catMercante.gif",
+      "targetLogicalPath": "assets/webm/catMercante.webm",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "gifFrameCount": true,
+        "gifHasMotion": true,
+        "centralClearance": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 208555,
+      "sha256": "b4e73551678a1f90e0458cf12bc3e7f6578c5b8c7d3b6cb4887c934239f8f34f",
+      "actual": {
+        "width": 320,
+        "height": 320,
+        "format": "GIF",
+        "mode": "P",
+        "frames": 12,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ]
+        ],
+        "framesDifferentFromFirst": 11,
+        "centralClearanceByFrame": [
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          },
+          {
+            "passed": true,
+            "minimumDiameterPercent": 58.0,
+            "sampleCount": 26468,
+            "nonClearSamples": 0,
+            "maximumAlpha": 0
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "key": "warrior",
+      "category": "animatedAvatar",
+      "variant": "animated-review-gif",
+      "path": "animated-avatars/warrior.gif",
+      "targetLogicalPath": "assets/gif/avatarBattleUnitCard_WarriorAnim.gif",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "gifFrameCount": true,
+        "gifHasMotion": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 224958,
+      "sha256": "5311cb6324c67582951271af621cc8ef2a2376f6cfc1993bb0206f145d4591e5",
+      "actual": {
+        "width": 550,
+        "height": 550,
+        "format": "GIF",
+        "mode": "P",
+        "frames": 10,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ]
+        ],
+        "framesDifferentFromFirst": 9
+      },
+      "passed": true
+    },
+    {
+      "key": "magical",
+      "category": "animatedAvatar",
+      "variant": "animated-review-gif",
+      "path": "animated-avatars/magical.gif",
+      "targetLogicalPath": "assets/gif/avatarBattleUnitCard_MagicalAnim.gif",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "gifFrameCount": true,
+        "gifHasMotion": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 208632,
+      "sha256": "9f2ab9603134248c6948075e26ce14b49432db7c7331884439e99a88838880f2",
+      "actual": {
+        "width": 550,
+        "height": 550,
+        "format": "GIF",
+        "mode": "P",
+        "frames": 10,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ]
+        ],
+        "framesDifferentFromFirst": 9
+      },
+      "passed": true
+    },
+    {
+      "key": "cleric",
+      "category": "animatedAvatar",
+      "variant": "animated-review-gif",
+      "path": "animated-avatars/cleric.gif",
+      "targetLogicalPath": "assets/gif/avatarBattleUnitCard_ClericAnim.gif",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "gifFrameCount": true,
+        "gifHasMotion": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 222816,
+      "sha256": "6d8c2c4f247e86e6660f27224589cf7f6728b9d86f9fe7e01d1629cb4bae6bd1",
+      "actual": {
+        "width": 550,
+        "height": 550,
+        "format": "GIF",
+        "mode": "P",
+        "frames": 10,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ]
+        ],
+        "framesDifferentFromFirst": 9
+      },
+      "passed": true
+    },
+    {
+      "key": "avatarAlchemist",
+      "category": "animatedAvatar",
+      "variant": "animated-review-gif",
+      "path": "animated-avatars/avatarAlchemist.gif",
+      "targetLogicalPath": "assets/gif/avatarAlchemist.gif",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true,
+        "alphaChannel": true,
+        "transparentPixels": true,
+        "gifFrameCount": true,
+        "gifHasMotion": true
+      },
+      "errors": [],
+      "warnings": [],
+      "bytes": 205609,
+      "sha256": "88082a97f920e20479d11b9f16927e19d356f30ac4beb44e6230c7ac575caa68",
+      "actual": {
+        "width": 512,
+        "height": 512,
+        "format": "GIF",
+        "mode": "P",
+        "frames": 10,
+        "alphaExtremaByFrame": [
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ]
+        ],
+        "framesDifferentFromFirst": 9
+      },
+      "passed": true
+    }
+  ],
+  "contactSheets": [
+    {
+      "path": "contact-sheets/01-chat-bubbles.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true
+      },
+      "errors": [],
+      "bytes": 460447,
+      "sha256": "361d1c2a42704e501aac454b0a62031a587a72842f209992ab5f3d5fe27dce9b",
+      "actual": {
+        "width": 1584,
+        "height": 1574,
+        "format": "PNG",
+        "mode": "RGBA"
+      },
+      "passed": true
+    },
+    {
+      "path": "contact-sheets/02-profile-backgrounds.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true
+      },
+      "errors": [],
+      "bytes": 443747,
+      "sha256": "7c54aadd82ef82d6a69e2209ad43d6627d377b8cad962076ee280bbe427e56e2",
+      "actual": {
+        "width": 1564,
+        "height": 1614,
+        "format": "PNG",
+        "mode": "RGBA"
+      },
+      "passed": true
+    },
+    {
+      "path": "contact-sheets/03-battle-styles.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true
+      },
+      "errors": [],
+      "bytes": 669042,
+      "sha256": "9c34542bc5468f0e5b1c06ef79e2ee96b40eb35b5b2695c105f23983a1c0ad0e",
+      "actual": {
+        "width": 1584,
+        "height": 2354,
+        "format": "PNG",
+        "mode": "RGBA"
+      },
+      "passed": true
+    },
+    {
+      "path": "contact-sheets/04-static-avatar-borders.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true
+      },
+      "errors": [],
+      "bytes": 685501,
+      "sha256": "e4e24c6394d70735d896f16c1e449f469ee6c63044006593c1b6f7c757c74e68",
+      "actual": {
+        "width": 1614,
+        "height": 1224,
+        "format": "PNG",
+        "mode": "RGBA"
+      },
+      "passed": true
+    },
+    {
+      "path": "contact-sheets/05-animations-first-frames.png",
+      "checks": {
+        "exists": true,
+        "decodable": true,
+        "dimensions": true,
+        "format": true
+      },
+      "errors": [],
+      "bytes": 426073,
+      "sha256": "a43f9bcd1ef7fb0932530afde612754c9cfab6c46eec0244835d19406c83b118",
+      "actual": {
+        "width": 1584,
+        "height": 974,
+        "format": "PNG",
+        "mode": "RGBA"
+      },
+      "passed": true
+    }
+  ]
+}

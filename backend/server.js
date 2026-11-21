@@ -23,9 +23,27 @@ import {
   tauntSources,
   tickStates
 } from "./battle-skills.js";
+import {
+  battleSlotState,
+  loadSkillTrees,
+  nodeCost,
+  nodeRequirements,
+  skillTreeStatusBonus
+} from "./skill-tree.js";
+
+// 上游目录的猫猫剑意外只保留了回收价，导致心意商店把它显示成仅可出售。
+// 和同系列猫猫枪/锤一致，基础猫猫剑售价应为 120 心意点。
+if (resourceCatalog.cuteSword?.id === "cuteSword" && !resourceCatalog.cuteSword.userBuyCost?.length) {
+  resourceCatalog.cuteSword.userBuyCost = [{ cost: "cutePoint", count: 120 }];
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.resolve(__dirname, "..", "pulled-frontend");
+// 专精树（战斗/生活）的节点数据只有前端包里有，启动时解析一次
+const skillTreeCatalog = loadSkillTrees(frontendRoot);
+if (skillTreeCatalog.error) {
+  console.error("failed to load skill trees", skillTreeCatalog.error.message);
+}
 const actionDurationMs = (() => {
   try {
     const actionFile = fs.readdirSync(path.join(frontendRoot, "_nuxt")).find((name) => name.startsWith("game-json-actions-") && name.endsWith(".js"));
@@ -256,7 +274,283 @@ const itemUseEffects = (() => {
     return {};
   }
 })();
-const statusExperienceThresholds = [0, 20, 45, 80, 125, 180, 245, 320, 405, 500, 605, 720, 845, 980, 1125, 1280, 1445, 1620, 1805, 2000, 2205, 2420, 2645, 2880, 3125, 3380, 3645, 3920, 4205, 4500, 4805, 5760, 6825, 8000, 9285, 10680, 12185, 13800, 15525, 17360, 19305, 21360, 23525, 25800, 28185, 30680, 33285, 36000, 38825, 41760, 44805];
+const STYLE_CATALOGS = Object.freeze({
+  battle: new Set(["warrior", "magical", "cleric", "ninja"]),
+  chatContent: new Set(),
+  chatName: new Set(),
+  profile: new Set(["wangzong", "yixiao", "fishing_1", "night_ninja_1", "cute_kitty_1"]),
+  chatBubble: new Set(["cute_cat_1", "cute_cat_2", "dark_mag_1", "kitty_1", "moon_1", "ninja_cat_1", "star_1"]),
+  avatarBorder: new Set([
+    "kitty_head_1", "bunny_1", "ghostBladeNebula", "mageKitty1", "holyPawsGospel", "emberClaw",
+    "axeEnhanceMaster1", "cuteParty", "kittyRing2", "20260203potato", "meowQuest", "privateDetective",
+    "catVillageOverseer_1", "catVillageOverseer_2", "SpringFestivalLuckyCat2026", "SpringFestival2026_1",
+    "SpringFestival2026_12", "SpringFestival2026_LuckyHorseCat", "SpringFestival2026_LuckyHorseCat2",
+    "slumberCat", "catMercante"
+  ])
+});
+const STYLE_FIELDS = Object.freeze([
+  ["battle", "availableBattleCardStyles", "currentBattleCardStyle"],
+  ["chatContent", "availableChatContentStyles", "currentChatContentStyle"],
+  ["chatName", "availableChatNameStyles", "currentChatNameStyle"],
+  ["profile", "availableProfileStyles", "currentProfileStyle"],
+  ["chatBubble", "availableChatBubbleStyles", "currentChatBubbleStyle"],
+  ["avatarBorder", "availableAvatarBorders", "currentAvatarBorder"]
+]);
+const SAFE_CSS_HEX = /^#[0-9a-fA-F]{6}$/;
+const FORBIDDEN_OBJECT_KEYS = new Set(["__proto__", "prototype", "constructor"]);
+const RESOURCE_ID_CATALOG = new Set(Object.values(resourceCatalog)
+  .filter((resource) => resource && typeof resource === "object" && typeof resource.id === "string" && resourceCatalog[resource.id] === resource)
+  .map((resource) => resource.id));
+const PERSONALIZATION_FAVORITES_LIMIT = 500;
+const PERSONALIZATION_CATEGORY_LIMIT = 100;
+const PERSONALIZATION_CATEGORY_LENGTH_LIMIT = 100;
+const STYLE_OWNED_LIMIT = 500;
+const UNIQUE_FLAG_LIMIT = 500;
+const DIY_COLOR_LIMIT = 7;
+const DIY_TEXT_SHADOW_LIMIT = 2;
+const DIY_FLAG = Object.freeze({ type: "chatBubble", key: "diy" });
+const LUCKY_HORSE_CAT_2_RESOURCE_ID = "t_avatarBorder_SpringFestival2026_LuckyHorseCat2";
+const LUCKY_HORSE_CAT_2_STYLE = "SpringFestival2026_LuckyHorseCat2";
+
+function isPlainObject(value) {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function freshPersonalization() {
+  return { favoriteItems: [], categoryOrder: [], version: 0, updatedAt: null };
+}
+
+function freshStyleState() {
+  return {
+    owned: { battle: [], chatContent: [], chatName: [], profile: [], chatBubble: [], avatarBorder: [] },
+    selected: { battle: "", chatContent: "", chatName: "", profile: "", chatBubble: "", avatarBorder: "" },
+    diyChatBubbleStyle: { bgColor: [], textColor: [], textShadow: [] },
+    version: 0,
+    updatedAt: null
+  };
+}
+
+function nonNegativeVersion(value) {
+  const version = Number(value);
+  return Number.isSafeInteger(version) && version >= 0 ? version : 0;
+}
+
+function validTimestamp(value) {
+  return typeof value === "string" && Number.isFinite(Date.parse(value)) ? value : null;
+}
+
+function nextUpdatedAt(previous) {
+  const now = Date.now();
+  const prior = validTimestamp(previous) ? Date.parse(previous) : 0;
+  return new Date(Math.max(now, prior)).toISOString();
+}
+
+function uniqueCatalogStrings(list, catalog, limit = STYLE_OWNED_LIMIT) {
+  if (!Array.isArray(list)) return [];
+  const result = [];
+  const seen = new Set();
+  for (let index = 0; index < Math.min(list.length, limit); index += 1) {
+    const value = list[index];
+    if (typeof value !== "string" || FORBIDDEN_OBJECT_KEYS.has(value) || !catalog.has(value) || seen.has(value)) continue;
+    seen.add(value);
+    result.push(value);
+  }
+  return result;
+}
+
+function normalizePersonalizationState(value) {
+  const source = isPlainObject(value) ? value : {};
+  const favoriteItems = uniqueCatalogStrings(source.favoriteItems ?? source.favorites, RESOURCE_ID_CATALOG, PERSONALIZATION_FAVORITES_LIMIT);
+  const categoryOrder = [];
+  const seenCategories = new Set();
+  if (Array.isArray(source.categoryOrder)) {
+    for (let index = 0; index < Math.min(source.categoryOrder.length, PERSONALIZATION_CATEGORY_LIMIT); index += 1) {
+      const entry = source.categoryOrder[index];
+      if (typeof entry !== "string" || entry.length === 0 || entry.length > PERSONALIZATION_CATEGORY_LENGTH_LIMIT
+        || FORBIDDEN_OBJECT_KEYS.has(entry) || seenCategories.has(entry)) continue;
+      seenCategories.add(entry);
+      categoryOrder.push(entry);
+    }
+  }
+  return { favoriteItems, categoryOrder, version: nonNegativeVersion(source.version), updatedAt: validTimestamp(source.updatedAt) };
+}
+
+function stableUnique(list, keyOf, limit) {
+  const result = [];
+  const seen = new Set();
+  for (let index = 0; Array.isArray(list) && index < Math.min(list.length, limit); index += 1) {
+    const value = list[index];
+    const key = keyOf(value);
+    if (key === null || seen.has(key)) continue;
+    seen.add(key);
+    result.push(value);
+  }
+  return result;
+}
+
+function normalizeDiyStyle(value) {
+  const source = isPlainObject(value) ? value : {};
+  const colors = (raw) => stableUnique(raw, (color) => typeof color === "string" && SAFE_CSS_HEX.test(color) ? color.toLowerCase() : null, DIY_COLOR_LIMIT);
+  const textShadow = stableUnique(source.textShadow, (shadow) => isPlainObject(shadow)
+    && Object.keys(shadow).every((key) => ["color", "blur"].includes(key))
+    && typeof shadow.color === "string" && SAFE_CSS_HEX.test(shadow.color)
+    && Number.isInteger(shadow.blur) && shadow.blur >= 1 && shadow.blur <= 10
+    ? `${shadow.color.toLowerCase()}\u0000${shadow.blur}` : null, DIY_TEXT_SHADOW_LIMIT)
+    .map((shadow) => ({ color: shadow.color, blur: shadow.blur }));
+  return { bgColor: colors(source.bgColor), textColor: colors(source.textColor), textShadow };
+}
+
+function normalizeUniqueFlags(flags) {
+  const result = [];
+  const seen = new Set();
+  const source = Array.isArray(flags) ? flags : [];
+  for (let index = 0; index < source.length; index += 1) {
+    const flag = source[index];
+    if (!isPlainObject(flag) || typeof flag.type !== "string" || typeof flag.key !== "string"
+      || FORBIDDEN_OBJECT_KEYS.has(flag.type) || FORBIDDEN_OBJECT_KEYS.has(flag.key)) continue;
+    const key = `${flag.type}\u0000${flag.key}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push({ type: flag.type, key: flag.key });
+  }
+  return result;
+}
+
+function ownedStyleFromUniqueFlags(flags) {
+  const owned = freshStyleState().owned;
+  const typeMap = { battleStyle: "battle", profileStyle: "profile", chatBubble: "chatBubble", avatarBorder: "avatarBorder" };
+  for (const flag of normalizeUniqueFlags(flags)) {
+    const category = typeMap[flag.type];
+    const mappedKey = category === "battle" ? ({
+      battleStyleWarrior: "warrior", battleStyleMagical: "magical",
+      battleStyleCleric: "cleric", battleStyleNinja: "ninja"
+    }[flag.key] ?? flag.key) : flag.key;
+    if (!category || mappedKey === "diy" || !STYLE_CATALOGS[category].has(mappedKey)) continue;
+    if (owned[category].length < STYLE_OWNED_LIMIT && !owned[category].includes(mappedKey)) owned[category].push(mappedKey);
+  }
+  return owned;
+}
+
+function normalizeStyleState(value, uniqueFlags = []) {
+  const source = isPlainObject(value) ? value : {};
+  const legacy = isPlainObject(source.selected) && isPlainObject(source.owned) ? null : source;
+  const flagOwned = ownedStyleFromUniqueFlags(uniqueFlags);
+  const owned = {};
+  const selected = {};
+  for (const [category, availableField, currentField] of STYLE_FIELDS) {
+    const rawOwned = source.owned?.[category] ?? legacy?.[availableField] ?? [];
+    owned[category] = uniqueCatalogStrings(rawOwned, STYLE_CATALOGS[category], STYLE_OWNED_LIMIT);
+    for (const style of flagOwned[category]) {
+      if (owned[category].length >= STYLE_OWNED_LIMIT) break;
+      if (!owned[category].includes(style)) owned[category].push(style);
+    }
+    let rawSelected = source.selected?.[category] ?? legacy?.[currentField] ?? "";
+    if (category === "battle") rawSelected = ({
+      battleStyleWarrior: "warrior", battleStyleMagical: "magical",
+      battleStyleCleric: "cleric", battleStyleNinja: "ninja"
+    }[rawSelected] ?? rawSelected);
+    selected[category] = typeof rawSelected === "string" && (rawSelected === "" || owned[category].includes(rawSelected)) ? rawSelected : "";
+  }
+  let diyChatBubbleStyle = normalizeDiyStyle(source.diyChatBubbleStyle ?? legacy?.diyChatBubbleStyle);
+  if (!normalizeUniqueFlags(uniqueFlags).some((flag) => flag.type === DIY_FLAG.type && flag.key === DIY_FLAG.key)) {
+    diyChatBubbleStyle = freshStyleState().diyChatBubbleStyle;
+  }
+  return {
+    owned,
+    selected,
+    diyChatBubbleStyle,
+    version: nonNegativeVersion(source.version ?? legacy?.version),
+    updatedAt: validTimestamp(source.updatedAt ?? legacy?.updatedAt)
+  };
+}
+
+function styleWireView(player) {
+  const state = normalizeStyleState(player.style, player.uniqueFlag);
+  const view = {};
+  for (const [category, availableField, currentField] of STYLE_FIELDS) {
+    view[availableField] = [...state.owned[category]];
+    view[currentField] = state.selected[category];
+  }
+  view.diyChatBubbleStyle = structuredClone(state.diyChatBubbleStyle);
+  view.version = state.version;
+  view.updatedAt = state.updatedAt;
+  return view;
+}
+
+function publicStyleView(player) {
+  const state = normalizeStyleState(player.style, player.uniqueFlag);
+  return Object.fromEntries(STYLE_FIELDS.map(([category, , currentField]) => [currentField, state.selected[category]]));
+}
+
+function publicProfileStyleView(player) {
+  return publicStyleView(player);
+}
+
+function hasUniqueFlag(player, candidate) {
+  return (Array.isArray(player.uniqueFlag) ? player.uniqueFlag : []).some((flag) => flag?.type === candidate?.type && flag?.key === candidate?.key);
+}
+
+function addUniqueFlagSet(player, candidate) {
+  if (!candidate || typeof candidate.type !== "string" || typeof candidate.key !== "string" || hasUniqueFlag(player, candidate)) return false;
+  const normalized = normalizeUniqueFlags(player.uniqueFlag);
+  if (normalized.length >= UNIQUE_FLAG_LIMIT) return false;
+  normalized.push({ type: candidate.type, key: candidate.key });
+  player.uniqueFlag = normalized;
+  return true;
+}
+
+function hasDiyStyleEntitlement(player) {
+  return hasUniqueFlag(player, DIY_FLAG);
+}
+
+function cosmeticUsePlan(item) {
+  const grants = [];
+  const flags = [];
+  const seenGrants = new Set();
+  const seenFlags = new Set();
+  for (const effect of Array.isArray(item?.onUse) ? item.onUse : []) {
+    for (const [property, category] of [
+      ["addBattleCustomStyle", "battle"], ["addProfileStyle", "profile"],
+      ["addChatBubbleStyle", "chatBubble"], ["addAvatarBorder", "avatarBorder"]
+    ]) {
+      for (const key of Array.isArray(effect?.[property]) ? effect[property] : []) {
+        if (typeof key !== "string" || !STYLE_CATALOGS[category].has(key)) continue;
+        const grantKey = `${category}\u0000${key}`;
+        if (!seenGrants.has(grantKey)) {
+          seenGrants.add(grantKey);
+          grants.push({ category, key });
+        }
+      }
+    }
+    for (const flag of Array.isArray(effect?.addUniqueFlag) ? effect.addUniqueFlag : []) {
+      if (typeof flag?.type !== "string" || typeof flag?.key !== "string") continue;
+      const flagKey = `${flag.type}\u0000${flag.key}`;
+      if (!seenFlags.has(flagKey)) {
+        seenFlags.add(flagKey);
+        flags.push({ type: flag.type, key: flag.key });
+      }
+    }
+  }
+  // The bundled LuckyHorseCat2 resource has stale addAvatarBorder metadata that names Cat1.
+  // Keep metadata authoritative everywhere else, but grant Cat2 for this exact resource ID.
+  if (item?.id === LUCKY_HORSE_CAT_2_RESOURCE_ID && STYLE_CATALOGS.avatarBorder.has(LUCKY_HORSE_CAT_2_STYLE)) {
+    for (let index = grants.length - 1; index >= 0; index -= 1) {
+      if (grants[index].category === "avatarBorder") grants.splice(index, 1);
+    }
+    grants.push({ category: "avatarBorder", key: LUCKY_HORSE_CAT_2_STYLE });
+  }
+  return { grants, flags };
+}
+const statusExperienceThresholds = [
+  0, 20, 45, 80, 125, 180, 245, 320, 405, 500, 605, 720, 845, 980, 1125, 1280, 1445, 1620, 1805, 2000,
+  2205, 2420, 2645, 2880, 3125, 3380, 3645, 3920, 4205, 4500, 4805, 5760, 6825, 8000, 9285, 10680, 12185, 13800,
+  15525, 17360, 19305, 21360, 23525, 25800, 28185, 30680, 33285, 36000, 38825, 41760, 44805,
+  ...Array.from({ length: 50 }, (_, index) => Math.floor(44805 * Math.pow(1.18, index + 1))),
+  ...Array.from({ length: 30 }, (_, index) => Math.floor(44805 * Math.pow(1.18, 50) * Math.pow(1.15, index + 1))),
+  ...Array.from({ length: 20 }, (_, index) => Math.floor(44805 * Math.pow(1.18, 50) * Math.pow(1.15, 30) * Math.pow(1.12, index + 1)))
+];
 const statusKeys = ["attacking", "battle", "collecting", "cooking", "defencing", "dexterity", "enhance", "exploring", "farmingAnimal", "farmingPlant", "fishing", "forging", "intelligence", "knowledge", "luck", "manufacturing", "mining", "mysterious", "sewing", "stamina", "strength", "trading"];
 // 生活属性中文名（技能给「生活经验」时弹提示用，名字取自参考站的属性表 Pa）
 const LIFE_STATUS_LABELS = {
@@ -290,12 +584,43 @@ function getPlayerStatus(player) {
   return Object.fromEntries(statusKeys.map((key) => [key, normalizeStatus(player.status[key] || {})]));
 }
 
+function rankingLocalDateKey(value = Date.now()) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) return rankingLocalDateKey(Date.now());
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: process.env.TZ || "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+  const get = (type) => parts.find((part) => part.type === type)?.value || "00";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+function weeklyRankingBucket(player, dateKey = rankingLocalDateKey()) {
+  player.weeklyRanking ||= {};
+  const bucket = player.weeklyRanking[dateKey];
+  if (bucket && typeof bucket === "object" && !Array.isArray(bucket)) return bucket;
+  return (player.weeklyRanking[dateKey] = {});
+}
+
+function recordWeeklyRankingGain(player, category, amount) {
+  const gain = Number(amount) || 0;
+  if (!(gain > 0)) return;
+  const bucket = weeklyRankingBucket(player);
+  bucket[category] = Math.round(((Number(bucket[category]) || 0) + gain) * 100) / 100;
+  if (category !== "goldEarned") bucket.total = Math.round(((Number(bucket.total) || 0) + gain) * 100) / 100;
+  const keys = Object.keys(player.weeklyRanking).sort();
+  while (keys.length > 42) delete player.weeklyRanking[keys.shift()];
+}
+
 function addStatusExp(player, key, amount) {
   const gain = Number(amount) || 0;
   if (!(gain > 0)) return normalizeStatus(player.status[key] || {});
   const base = normalizeStatus(player.status[key] || {});
   const next = normalizeStatus({ ...base, currentExp: base.currentExp + gain, exp: base.currentExp + gain });
   player.status[key] = next;
+  recordWeeklyRankingGain(player, key, gain);
   return next;
 }
 const port = Number(process.env.PORT || 8080);
@@ -306,6 +631,23 @@ const gmPassword = process.env.MAOMAO_GM_PASSWORD || "";
 const accountFile = path.resolve(process.env.MAOMAO_ACCOUNT_FILE || path.join(__dirname, "data", "accounts.json"));
 const playerDataFile = path.resolve(process.env.MAOMAO_PLAYER_FILE || path.join(__dirname, "data", "players.json"));
 const marketDataFile = path.resolve(process.env.MAOMAO_MARKET_FILE || path.join(__dirname, "data", "market.json"));
+const socialDataFile = path.resolve(process.env.MAOMAO_SOCIAL_FILE || path.join(path.dirname(playerDataFile), "social.json"));
+// 全镇公共状态（公共建筑、家政维护费、捐助幂等记录）。镇级状态不能复制到每个角色存档。
+const villageDataFile = path.resolve(process.env.MAOMAO_VILLAGE_FILE || path.join(path.dirname(playerDataFile), "village.json"));
+const homeServiceWalFile = path.resolve(process.env.MAOMAO_HOME_SERVICE_WAL_FILE || path.join(path.dirname(playerDataFile), "home-service-transaction.json"));
+const auctionDataFile = path.resolve(process.env.MAOMAO_AUCTION_FILE || path.join(path.dirname(playerDataFile), "auctions.json"));
+const shopDataFile = path.resolve(process.env.MAOMAO_SHOP_FILE || path.join(path.dirname(playerDataFile), "shops.json"));
+const HOME_SERVICE_CYCLE_DAYS = Math.max(1, Math.min(365, Math.floor(Number(process.env.MAOMAO_HOME_SERVICE_CYCLE_DAYS) || 7)));
+const HOME_SERVICE_REQUEST_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const villageState = {
+  version: 2,
+  buildings: [],
+  homeService: { paidUntil: null, cycleDays: HOME_SERVICE_CYCLE_DAYS, fundsGold: 0, fundingFeeGold: 0, fundingLevel: 0 },
+  donations: {},
+  buildingDonations: [],
+  buildingRequests: {},
+  phaseSequence: 0
+};
 // 战斗房间落盘：房间和当前这一场的战斗数据都只在内存里跑，不落盘的话每次重启（发布）都会
 // 把玩家挂着机的房间全部清空，回来就成了「战斗没了」。
 const battleRoomFile = path.resolve(process.env.MAOMAO_ROOM_FILE || path.join(path.dirname(playerDataFile), "rooms.json"));
@@ -322,6 +664,40 @@ const accounts = new Map();
 const battleRooms = new Map();
 const battleTimers = new Map();
 const marketTrades = new Map();
+const socialState = {
+  version: 1,
+  friendRequests: [],
+  friendships: [],
+  chatMessages: [],
+  blocks: {},
+  guilds: [],
+  guildJoinRequests: []
+};
+// 拍卖行：每条记录含委托物品、起价、结束时间与出价历史。物品在创建时从背包扣走（托管），
+// 流拍/取消时退回，成交时转给买家；金币出价时先扣款，被超越时退回上一名出价者。
+const auctionState = {
+  version: 1,
+  auctions: []
+};
+// 玩家商店：挂单引用卖家实时库存，并按保留数量动态计算可售量；成交时从卖家库存扣货，
+// 买家以猫爪古钱币付款。店铺置顶和货架扩展许可证在使用时消耗。
+const shopState = {
+  version: 2,
+  shops: [],
+  purchases: [],
+  pins: {},
+  pinCooldowns: {}
+};
+const PLAYER_SHOP_MAX_SHOPS = 1;
+const PLAYER_SHOP_CURRENCY_ID = "catPawCoin";
+const PLAYER_SHOP_BASE_ITEMS = 3;
+const PLAYER_SHOP_MAX_EXTRA_ITEMS = 20;
+const PLAYER_SHOP_DEFAULT_SCHEME_MAX_USES = 5;
+const PLAYER_SHOP_SCHEME_IDS = ["default", "fast"];
+const PLAYER_SHOP_MAX_GLOBAL_PINS = 6;
+const PLAYER_SHOP_PIN_MS = 24 * 60 * 60 * 1000;
+const PLAYER_SHOP_PIN_COOLDOWN_MS = 48 * 60 * 60 * 1000;
+const PLAYER_SHOP_DAYS = 7;
 const marketConfig = {
   maxSellerTransactions: 5,
   maxBuyerTransactions: 5,
@@ -331,6 +707,142 @@ const marketConfig = {
 let persistTimer = null;
 let persistInProgress = false;
 let persistRequested = false;
+const phaseOneMutationTails = new Map();
+const phaseOneTestHooksEnabled = process.env.NODE_ENV === "test" && process.env.MAOMAO_TEST_HOOKS === "1";
+let injectedPlayerPersistenceFailures = 0;
+let testFullFlushFrozen = false;
+let testPhaseOneRetriesPending = 0;
+let testPhaseOneRetryReady = false;
+const testPersistenceCounters = {
+  fullFlushStarted: 0,
+  fullFlushCompleted: 0,
+  phaseOnePersistCalls: 0,
+  phaseOnePendingBranchStarted: 0,
+  phaseOnePendingBranchCompleted: 0,
+  phaseOnePendingBranchFailed: 0,
+  phaseOneRetryScheduled: 0,
+  phaseOneRetryStarted: 0,
+  phaseOneRetryCompleted: 0
+};
+
+function pendingFullFlushForTest() {
+  return Boolean(persistTimer) || persistRequested;
+}
+
+function persistenceTestState() {
+  return {
+    frozen: testFullFlushFrozen,
+    pendingFullFlush: pendingFullFlushForTest(),
+    persistTimer: Boolean(persistTimer),
+    persistInProgress,
+    persistRequested,
+    retriesPending: testPhaseOneRetriesPending,
+    counters: { ...testPersistenceCounters }
+  };
+}
+
+function sendTestIpc(type, requestId, extra = {}) {
+  if (typeof process.send === "function") process.send({ type, requestId, ...extra });
+}
+
+function fullFlushIdleForTest() {
+  return !pendingFullFlushForTest() && !persistInProgress && testPhaseOneRetriesPending === 0;
+}
+
+function waitForFullFlushIdleForTest(requestId) {
+  if (fullFlushIdleForTest()) {
+    sendTestIpc("maomao:test:full-flush-idle:result", requestId, persistenceTestState());
+    return;
+  }
+  setImmediate(() => waitForFullFlushIdleForTest(requestId));
+}
+
+function waitForPhaseOneIdleForTest(uuid, requestId) {
+  const tail = phaseOneMutationTails.get(uuid);
+  if (!tail) {
+    sendTestIpc("maomao:test:phase-one-idle:result", requestId, { uuid });
+    return;
+  }
+  tail.catch(() => {}).then(() => {
+    if (phaseOneMutationTails.has(uuid)) waitForPhaseOneIdleForTest(uuid, requestId);
+    else sendTestIpc("maomao:test:phase-one-idle:result", requestId, { uuid });
+  });
+}
+
+if (phaseOneTestHooksEnabled) {
+  process.on("message", (message) => {
+    if (!message || typeof message !== "object") return;
+    if (message.type === "maomao:test:fail-player-persistence") {
+      const count = Math.max(1, Math.min(100, Math.floor(Number(message.count) || 1)));
+      injectedPlayerPersistenceFailures += count;
+      sendTestIpc("maomao:test:fail-player-persistence:armed", message.requestId, { remaining: injectedPlayerPersistenceFailures });
+      return;
+    }
+    if (message.type === "maomao:test:persistence-control") {
+      if (typeof message.frozen === "boolean") testFullFlushFrozen = message.frozen;
+      if (message.resetCounters) {
+        if (testPhaseOneRetriesPending !== 0) throw new Error("cannot reset persistence counters with retry pending");
+        testPhaseOneRetryReady = false;
+        for (const key of Object.keys(testPersistenceCounters)) testPersistenceCounters[key] = 0;
+      }
+      if (!testFullFlushFrozen && pendingFullFlushForTest() && !persistInProgress) {
+        if (persistTimer) { clearTimeout(persistTimer); persistTimer = null; }
+        if (testPhaseOneRetriesPending > 0 && !testPhaseOneRetryReady) {
+          testPersistenceCounters.phaseOneRetryStarted += 1;
+          testPhaseOneRetryReady = true;
+        }
+        persistRequested = false;
+        schedulePersist();
+      }
+      sendTestIpc("maomao:test:persistence-control:result", message.requestId, persistenceTestState());
+      return;
+    }
+    if (message.type === "maomao:test:persistence-state") {
+      sendTestIpc("maomao:test:persistence-state:result", message.requestId, persistenceTestState());
+      return;
+    }
+    if (message.type === "maomao:test:await-full-flush-idle") {
+      waitForFullFlushIdleForTest(message.requestId);
+      return;
+    }
+    if (message.type === "maomao:test:await-phase-one-idle") {
+      waitForPhaseOneIdleForTest(String(message.uuid || ""), message.requestId);
+      return;
+    }
+    if (message.type !== "maomao:test:player-snapshot") return;
+    const player = players.get(message.uuid);
+    if (player && isPlainObject(message.patch)) {
+      for (const key of ["inventory", "personalization", "style", "uniqueFlag", "ironcat", "isIronCat"]) {
+        if (Object.hasOwn(message.patch, key)) player[key] = structuredClone(message.patch[key]);
+      }
+    }
+    sendTestIpc("maomao:test:player-snapshot:result", message.requestId, { player: player ? playerPersistenceView(player) : null });
+  });
+}
+
+function injectPlayerPersistenceFailureForTest() {
+  if (!phaseOneTestHooksEnabled || injectedPlayerPersistenceFailures <= 0) return;
+  injectedPlayerPersistenceFailures -= 1;
+  const error = new Error("injected players.json persistence failure");
+  error.code = "MAOMAO_TEST_INJECTED_PLAYER_PERSISTENCE_FAILURE";
+  throw error;
+}
+
+function writePlayersJsonNow({ injectFailure = false } = {}) {
+  fs.mkdirSync(path.dirname(playerDataFile), { recursive: true });
+  if (injectFailure) injectPlayerPersistenceFailureForTest();
+  writeJsonAtomic(playerDataFile, [...players.values()].map(playerPersistenceView));
+}
+
+function serializePhaseOneMutation(uuid, operation) {
+  const previous = phaseOneMutationTails.get(uuid) || Promise.resolve();
+  const current = previous.catch(() => {}).then(operation);
+  phaseOneMutationTails.set(uuid, current);
+  current.finally(() => {
+    if (phaseOneMutationTails.get(uuid) === current) phaseOneMutationTails.delete(uuid);
+  }).catch(() => {});
+  return current;
+}
 
 fs.mkdirSync(path.dirname(accountFile), { recursive: true });
 if (fs.existsSync(accountFile)) {
@@ -367,6 +879,18 @@ function parseCookies(header = "") {
   }).filter(([key]) => key));
 }
 
+function publicSocialProfile(player) {
+  return {
+    uuid: player.uuid,
+    name: player.name,
+    avatar: player.avatar,
+    title: player.title ?? null,
+    ironcat: player.ironcat === true || player.isIronCat === true,
+    isIronCat: player.ironcat === true || player.isIronCat === true,
+    style: publicProfileStyleView(player)
+  };
+}
+
 function publicUser(player) {
   return {
     uuid: player.uuid,
@@ -391,7 +915,7 @@ function publicProfileView(player, viewerUuid) {
     ironcat: false,
     isIronCat: false,
     isVisitor: false,
-    style: { currentAvatarBorder: null },
+    style: publicProfileStyleView(player),
     // 邮箱只给本人看，别人的资料里不出现
     ...(isSelf ? { email: player.email } : {})
   };
@@ -464,13 +988,17 @@ function makePlayer(email, name, existingUuid, createdAt) {
     // 角色设置里的开关（隐藏公会头衔、关闭登录邮箱验证等），由 character:updateProfile 写入
     option: {},
     resources: { gold: 1000, food: 100 },
-    inventory: { __satiety: { count: 0 } },
+    // 赞助积分不是背包道具：current 为可用余额，max 为历史累计余额。
+    sponsorPoint: { current: 0, max: 0 },
+    inventory: { __satiety: { count: 0 }, catPawCoin: { count: 100 } },
     status: {},
     workEquipment: {},
     battleEquipment: {},
     // 自建建筑状态：{ [buildingId]: { status:"BUILT", level, builtAt } }，前端只认 status === "BUILT"
     building: {},
     uniqueFlag: [],
+    personalization: freshPersonalization(),
+    style: freshStyleState(),
     taskQueue: [],
     kitty: [],
     marketProfile: { extraSeller: 0, extraBuyer: 0 },
@@ -480,13 +1008,23 @@ function makePlayer(email, name, existingUuid, createdAt) {
     questSeq: 0,
     questWindow: 0,
     farmPlots: [],
+    // 自动收获、战利品等待领取物品：[{ id,title,createdAt,claimed,items:[{id,resourceId,amount,claimed}] }]
+    harvestBoxes: [],
     // 技能配置（技能页 characterBattleSkill）：数组形态，见 playerSkills 的注释。
     // baseAttack 是出生自带的普通攻击，恒存在且不可禁用。
     skillList: [{ skillId: "baseAttack", level: 1, exp: 0, enabled: true, order: 0, logic: [] }],
     // 技能配置方案：{ uuid, name, data:[技能…], createdAt, updatedAt }
     skillOutfits: [],
+    // 装备配装方案（工作/战斗套装）
+    outfits: [],
+    // 厨师技能风味/目标配置：{ flavors:[{key,count}], targets:[{key,count}] }
+    chefSkill: { flavors: [], targets: [] },
+    // 战斗播报偏好：{ battle: boolean }
+    msgPref: { battle: false },
     // 战斗物品袋：{ [resourceId]: { remainingCount, prepareCount, ai, order, useWhen } }
     battleInventory: {},
+    // 周榜只累计接入后的真实增量；键为本地自然日 YYYY-MM-DD，旧存档缺失时保持空。
+    weeklyRanking: {},
     createdAt: createdAt || new Date().toISOString()
   };
   setGoldCount(player, 1000);
@@ -509,12 +1047,17 @@ function playerPersistenceView(player) {
     title: player.title,
     option: player.option || {},
     resources: player.resources,
+    sponsorPoint: player.sponsorPoint && typeof player.sponsorPoint === "object"
+      ? player.sponsorPoint
+      : { current: 0, max: 0 },
     inventory: player.inventory,
     status: player.status,
     workEquipment: player.workEquipment,
     battleEquipment: player.battleEquipment,
     building: player.building || {},
-    uniqueFlag: player.uniqueFlag,
+    uniqueFlag: normalizeUniqueFlags(player.uniqueFlag),
+    personalization: normalizePersonalizationState(player.personalization),
+    style: normalizeStyleState(player.style, player.uniqueFlag),
     taskQueue: player.taskQueue,
     kitty: player.kitty,
     marketProfile: player.marketProfile,
@@ -522,10 +1065,19 @@ function playerPersistenceView(player) {
     questSeq: Number(player.questSeq) || 0,
     questWindow: Number(player.questWindow) || 0,
     farmPlots: Array.isArray(player.farmPlots) ? player.farmPlots : [],
+    harvestBoxes: Array.isArray(player.harvestBoxes) ? player.harvestBoxes : [],
     // 技能配置（数组）。老存档里没有这两个字段，读档时由 playerSkills 兜底成只有 baseAttack
     skillList: Array.isArray(player.skillList) ? player.skillList : [],
     skillOutfits: Array.isArray(player.skillOutfits) ? player.skillOutfits : [],
+    // 装备配装方案：[{ uuid, name, type:"work"|"battle", equipment, actionIdList, createdAt, updatedAt }]
+    outfits: Array.isArray(player.outfits) ? player.outfits : [],
+    chefSkill: player.chefSkill && typeof player.chefSkill === "object" && !Array.isArray(player.chefSkill) ? player.chefSkill : { flavors: [], targets: [] },
+    msgPref: player.msgPref && typeof player.msgPref === "object" && !Array.isArray(player.msgPref) ? player.msgPref : { battle: false },
     battleInventory: player.battleInventory && typeof player.battleInventory === "object" && !Array.isArray(player.battleInventory) ? player.battleInventory : {},
+    // 专精（技能树）点数分配：{ battle: { nodeId: level }, life: {...} }
+    skillTree: player.skillTree && typeof player.skillTree === "object" && !Array.isArray(player.skillTree) ? player.skillTree : {},
+    skillTreeBonus: player.skillTreeBonus && typeof player.skillTreeBonus === "object" ? player.skillTreeBonus : {},
+    weeklyRanking: player.weeklyRanking && typeof player.weeklyRanking === "object" && !Array.isArray(player.weeklyRanking) ? player.weeklyRanking : {},
     createdAt: player.createdAt
   };
 }
@@ -534,23 +1086,143 @@ function marketPersistenceView(trade) {
   return { ...trade };
 }
 
+function socialPersistenceView() {
+  return {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    friendRequests: socialState.friendRequests,
+    friendships: socialState.friendships,
+    chatMessages: socialState.chatMessages,
+    blocks: socialState.blocks,
+    guilds: socialState.guilds,
+    guildJoinRequests: socialState.guildJoinRequests
+  };
+}
+
+function auctionPersistenceView() {
+  return {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    auctions: auctionState.auctions
+  };
+}
+
+function shopPersistenceView() {
+  return {
+    version: 2,
+    savedAt: new Date().toISOString(),
+    shops: shopState.shops,
+    purchases: shopState.purchases,
+    pins: shopState.pins,
+    pinCooldowns: shopState.pinCooldowns
+  };
+}
+
+function villagePersistenceView() {
+  return {
+    version: 2,
+    savedAt: new Date().toISOString(),
+    buildings: villageState.buildings,
+    homeService: villageState.homeService,
+    donations: villageState.donations,
+    buildingDonations: villageState.buildingDonations,
+    buildingRequests: villageState.buildingRequests,
+    phaseSequence: villageState.phaseSequence
+  };
+}
+
+function replayPreparedVillageTransaction(wal) {
+  if (wal?.status !== "prepared" || !Array.isArray(wal.players) || !wal.village || typeof wal.village !== "object") {
+    throw new Error("invalid prepared village transaction");
+  }
+  for (const saved of wal.players) {
+    const player = players.get(saved?.uuid);
+    if (player) Object.assign(player, structuredClone(saved));
+  }
+  villageState.buildings = Array.isArray(wal.village.buildings) ? structuredClone(wal.village.buildings) : villageState.buildings;
+  villageState.homeService = wal.village.homeService && typeof wal.village.homeService === "object"
+    ? structuredClone(wal.village.homeService)
+    : villageState.homeService;
+  villageState.donations = wal.village.donations && typeof wal.village.donations === "object"
+    ? structuredClone(wal.village.donations)
+    : villageState.donations;
+  villageState.buildingDonations = Array.isArray(wal.village.buildingDonations)
+    ? structuredClone(wal.village.buildingDonations)
+    : villageState.buildingDonations;
+  villageState.buildingRequests = wal.village.buildingRequests && typeof wal.village.buildingRequests === "object"
+    ? structuredClone(wal.village.buildingRequests)
+    : villageState.buildingRequests;
+  villageState.phaseSequence = Math.max(0, Math.floor(Number(wal.village.phaseSequence) || 0));
+  fs.mkdirSync(path.dirname(playerDataFile), { recursive: true });
+  writeJsonAtomic(playerDataFile, wal.players);
+  writeJsonAtomic(villageDataFile, wal.village);
+  fs.rmSync(homeServiceWalFile, { force: true });
+}
+
+// Guild constants must be initialized before loadPersistentState() runs, which normalizes
+// persisted guilds and reads GUILD_ROLES/GUILD_TYPES during startup.
+const GUILD_ROLES = new Set(["MEMBER", "OFFICER", "LEADER"]);
+const GUILD_TYPES = new Set(["life", "idle", "battle"]);
+const GUILD_CREATE_COST = Object.freeze([
+  { id: "gold", count: 1_000_000 },
+  { id: "wood", count: 10_000 },
+  { id: "stone", count: 8_000 },
+  { id: "iron", count: 2_000 },
+  { id: "steel", count: 1_000 },
+  { id: "sand", count: 1_000 }
+]);
+
+// 单个存档文件损坏（截断、被编辑器写入 BOM、手工改错）不应让其它模块的数据一起丢失：
+// 这里逐文件容错读取，解析失败只跳过该文件并告警，其余状态继续加载。
+function readJsonFileSafe(file, label) {
+  try {
+    const text = fs.readFileSync(file, "utf8").replace(/^\uFEFF/, "");
+    return JSON.parse(text);
+  } catch (error) {
+    console.error(`[persist] 跳过无法解析的 ${label || path.basename(file)}:`, error.message);
+    return undefined;
+  }
+}
+
 function loadPersistentState() {
+  let phaseOneMigrationNeeded = false;
   try {
     if (fs.existsSync(playerDataFile)) {
-      const savedPlayers = JSON.parse(fs.readFileSync(playerDataFile, "utf8"));
+      const savedPlayers = readJsonFileSafe(playerDataFile, "players.json");
       for (const saved of Array.isArray(savedPlayers) ? savedPlayers : []) {
         const player = players.get(saved.uuid);
         if (!player) continue;
+        if (!isPlainObject(saved.personalization) || !isPlainObject(saved.style)
+          || ["favoriteItems", "categoryOrder", "personalizationVersion", "personalizationUpdatedAt", "userStyle", "customStyle", "userPersonalization"].some((key) => Object.hasOwn(saved, key))) {
+          phaseOneMigrationNeeded = true;
+        }
+        const legacyStyle = saved.style ?? saved.userStyle ?? saved.customStyle;
+        const legacyPersonalization = saved.personalization ?? saved.userPersonalization ?? {
+          favoriteItems: saved.favoriteItems,
+          categoryOrder: saved.categoryOrder,
+          version: saved.personalizationVersion,
+          updatedAt: saved.personalizationUpdatedAt
+        };
         Object.assign(player, {
+          name: typeof saved.name === "string" && saved.name.trim() ? saved.name.trim().slice(0, 24) : player.name,
           avatar: saved.avatar || player.avatar,
           title: saved.title ?? player.title,
+          option: saved.option && typeof saved.option === "object" && !Array.isArray(saved.option) ? saved.option : player.option,
           resources: saved.resources && typeof saved.resources === "object" ? saved.resources : player.resources,
+          sponsorPoint: saved.sponsorPoint && typeof saved.sponsorPoint === "object" && !Array.isArray(saved.sponsorPoint)
+            ? {
+                current: Math.max(0, Number(saved.sponsorPoint.current) || 0),
+                max: Math.max(0, Number(saved.sponsorPoint.max) || 0)
+              }
+            : player.sponsorPoint,
           inventory: saved.inventory && typeof saved.inventory === "object" ? saved.inventory : player.inventory,
           status: saved.status && typeof saved.status === "object" ? saved.status : player.status,
           workEquipment: saved.workEquipment && typeof saved.workEquipment === "object" ? saved.workEquipment : player.workEquipment,
           battleEquipment: saved.battleEquipment && typeof saved.battleEquipment === "object" ? saved.battleEquipment : player.battleEquipment,
           building: saved.building && typeof saved.building === "object" && !Array.isArray(saved.building) ? saved.building : player.building,
-          uniqueFlag: Array.isArray(saved.uniqueFlag) ? saved.uniqueFlag : player.uniqueFlag,
+          uniqueFlag: normalizeUniqueFlags(Array.isArray(saved.uniqueFlag) ? saved.uniqueFlag : player.uniqueFlag),
+          personalization: normalizePersonalizationState(legacyPersonalization),
+          style: normalizeStyleState(legacyStyle, Array.isArray(saved.uniqueFlag) ? saved.uniqueFlag : player.uniqueFlag),
           taskQueue: Array.isArray(saved.taskQueue) ? saved.taskQueue : player.taskQueue,
           kitty: Array.isArray(saved.kitty) ? saved.kitty : player.kitty,
           marketProfile: saved.marketProfile && typeof saved.marketProfile === "object" ? saved.marketProfile : player.marketProfile,
@@ -558,9 +1230,16 @@ function loadPersistentState() {
           questSeq: Number.isFinite(Number(saved.questSeq)) ? Number(saved.questSeq) : player.questSeq,
           questWindow: Number.isFinite(Number(saved.questWindow)) ? Number(saved.questWindow) : player.questWindow,
           farmPlots: Array.isArray(saved.farmPlots) ? saved.farmPlots : player.farmPlots,
+          harvestBoxes: Array.isArray(saved.harvestBoxes) ? saved.harvestBoxes : player.harvestBoxes,
           skillList: Array.isArray(saved.skillList) && saved.skillList.length ? saved.skillList : player.skillList,
           skillOutfits: Array.isArray(saved.skillOutfits) ? saved.skillOutfits : player.skillOutfits,
-          battleInventory: saved.battleInventory && typeof saved.battleInventory === "object" && !Array.isArray(saved.battleInventory) ? saved.battleInventory : player.battleInventory
+          outfits: Array.isArray(saved.outfits) ? saved.outfits : player.outfits,
+          chefSkill: saved.chefSkill && typeof saved.chefSkill === "object" && !Array.isArray(saved.chefSkill) ? saved.chefSkill : player.chefSkill,
+          msgPref: saved.msgPref && typeof saved.msgPref === "object" && !Array.isArray(saved.msgPref) ? saved.msgPref : player.msgPref,
+          battleInventory: saved.battleInventory && typeof saved.battleInventory === "object" && !Array.isArray(saved.battleInventory) ? saved.battleInventory : player.battleInventory,
+          skillTree: saved.skillTree && typeof saved.skillTree === "object" && !Array.isArray(saved.skillTree) ? saved.skillTree : player.skillTree,
+          skillTreeBonus: saved.skillTreeBonus && typeof saved.skillTreeBonus === "object" && !Array.isArray(saved.skillTreeBonus) ? saved.skillTreeBonus : player.skillTreeBonus,
+          weeklyRanking: saved.weeklyRanking && typeof saved.weeklyRanking === "object" && !Array.isArray(saved.weeklyRanking) ? saved.weeklyRanking : player.weeklyRanking
         });
         if (player.inventory?.gold?.count === undefined) setGoldCount(player, player.resources?.gold || 0);
         // 老存档可能残留「资源不足自动暂停」的任务：饱食度这条已改成直接结束，
@@ -573,12 +1252,152 @@ function loadPersistentState() {
       }
     }
     if (fs.existsSync(marketDataFile)) {
-      const savedTrades = JSON.parse(fs.readFileSync(marketDataFile, "utf8"));
+      const savedTrades = readJsonFileSafe(marketDataFile, "market.json");
       for (const saved of Array.isArray(savedTrades) ? savedTrades : []) {
         if (!saved?.tradeUuid || !players.has(saved.ownerUuid)) continue;
         marketTrades.set(saved.tradeUuid, saved);
       }
     }
+    if (fs.existsSync(socialDataFile)) {
+      const savedSocial = readJsonFileSafe(socialDataFile, "social.json");
+      socialState.friendRequests = Array.isArray(savedSocial?.friendRequests) ? savedSocial.friendRequests.filter((entry) => entry && players.has(entry.fromUserUuid) && players.has(entry.toUserUuid)) : [];
+      socialState.friendships = Array.isArray(savedSocial?.friendships) ? savedSocial.friendships.filter((entry) => Array.isArray(entry) && entry.length === 2 && entry.every((uuid) => players.has(uuid))) : [];
+      socialState.chatMessages = Array.isArray(savedSocial?.chatMessages) ? savedSocial.chatMessages.filter((entry) => entry && players.has(entry.sender) && typeof entry.created_At === "string").slice(-5000) : [];
+      socialState.blocks = {};
+      for (const [uuid, blocked] of Object.entries(savedSocial?.blocks || {})) {
+        if (players.has(uuid)) socialState.blocks[uuid] = [...new Set((Array.isArray(blocked) ? blocked : []).filter((target) => players.has(target) && target !== uuid))];
+      }
+      socialState.guilds = (Array.isArray(savedSocial?.guilds) ? savedSocial.guilds : []).filter((entry) => entry?.uuid && typeof entry.name === "string").map((entry) => {
+        const owner = players.has(entry.owner) ? entry.owner : null;
+        const seen = new Set();
+        const members = (Array.isArray(entry.members) ? entry.members : []).filter((member) => member && players.has(member.uuid) && !seen.has(member.uuid) && seen.add(member.uuid)).map((member) => ({
+          uuid: member.uuid,
+          role: GUILD_ROLES.has(member.role) ? member.role : "MEMBER",
+          titleUuid: typeof member.titleUuid === "string" ? member.titleUuid : null,
+          joinedAt: typeof member.joinedAt === "string" ? member.joinedAt : new Date().toISOString()
+        }));
+        if (owner && !members.some((member) => member.uuid === owner)) members.push({ uuid: owner, role: "LEADER", titleUuid: null, joinedAt: entry.createdAt || new Date().toISOString() });
+        const leader = members.find((member) => member.uuid === owner) || members.find((member) => member.role === "LEADER") || members[0];
+        if (!leader) return null;
+        members.forEach((member) => { member.role = member.uuid === leader.uuid ? "LEADER" : member.role === "LEADER" ? "MEMBER" : member.role; });
+        const titles = (Array.isArray(entry.titles) ? entry.titles : []).filter((title) => title?.uuid && typeof title.title === "string" && GUILD_ROLES.has(title.role)).map((title) => ({ uuid: title.uuid, title: title.title, role: title.role, description: typeof title.description === "string" ? title.description : "" }));
+        const titleIds = new Set(titles.map((title) => title.uuid));
+        members.forEach((member) => { if (!titleIds.has(member.titleUuid)) member.titleUuid = null; });
+        return { ...entry, owner: leader.uuid, members, titles, type: normalizeGuildTypes(entry.type) || [], description: typeof entry.description === "string" ? entry.description : "" };
+      }).filter(Boolean);
+      // One player may belong to only one guild; retain the oldest record deterministically.
+      const claimedGuildMembers = new Set();
+      socialState.guilds.sort((left, right) => String(left.createdAt || "").localeCompare(String(right.createdAt || "")) || left.uuid.localeCompare(right.uuid));
+      for (const guild of socialState.guilds) guild.members = guild.members.filter((member) => !claimedGuildMembers.has(member.uuid) && claimedGuildMembers.add(member.uuid));
+      socialState.guilds = socialState.guilds.filter((guild) => guild.members.length && guild.members.some((member) => member.uuid === guild.owner));
+      socialState.guildJoinRequests = (Array.isArray(savedSocial?.guildJoinRequests) ? savedSocial.guildJoinRequests : []).filter((entry) => entry?.id && players.has(entry.userUuid) && socialState.guilds.some((guild) => guild.uuid === entry.guildUuid));
+    }
+    if (fs.existsSync(auctionDataFile)) {
+      const savedAuction = readJsonFileSafe(auctionDataFile, "auctions.json");
+      auctionState.auctions = (Array.isArray(savedAuction?.auctions) ? savedAuction.auctions : [])
+        .filter((entry) => entry?.uuid && players.has(entry.creator))
+        .map((entry) => {
+          const targetType = String(entry.targetType || "").toUpperCase();
+          const stateMap = { SOLD: "SETTLED", EXPIRED: "ENDED" };
+          return {
+            ...entry,
+            targetType: ["ITEM", "TITLE", "TEXT"].includes(targetType) ? targetType : "ITEM",
+            state: stateMap[entry.state] || entry.state || "OPEN",
+            bids: (Array.isArray(entry.bids) ? entry.bids : []).filter((bid) => bid?.bidder && players.has(bid.bidder))
+          };
+        });
+    }
+    if (fs.existsSync(shopDataFile)) {
+      const savedShop = readJsonFileSafe(shopDataFile, "shops.json");
+      shopState.shops = (Array.isArray(savedShop?.shops) ? savedShop.shops : [])
+        .filter((entry) => entry?.uuid && players.has(entry.owner))
+        .map((entry) => {
+          const extraItemSlots = Math.max(0, Math.min(PLAYER_SHOP_MAX_EXTRA_ITEMS, Math.floor(Number(entry.extraItemSlots) || 0)));
+          const savedUsage = entry.schemeUsage && typeof entry.schemeUsage === "object" && !Array.isArray(entry.schemeUsage)
+            ? entry.schemeUsage
+            : null;
+          // Legacy saves only recorded a total expansion count. Attribute the first five uses to
+          // the resource scheme and the remainder to the permit scheme so no free uses reappear.
+          const defaultUsage = Math.max(0, Math.min(PLAYER_SHOP_DEFAULT_SCHEME_MAX_USES,
+            Math.floor(Number(savedUsage?.default) || (savedUsage ? 0 : Math.min(extraItemSlots, PLAYER_SHOP_DEFAULT_SCHEME_MAX_USES)))));
+          const fastUsage = Math.max(0, Math.floor(Number(savedUsage?.fast) || (savedUsage ? 0 : Math.max(0, extraItemSlots - defaultUsage))));
+          return {
+            ...entry,
+            extraItemSlots,
+            schemeUsage: { default: defaultUsage, fast: fastUsage },
+            items: (Array.isArray(entry.items) ? entry.items : [])
+              .filter((item) => item?.uuid && item.resourceId)
+              .map((item) => {
+                const inventoryRemainingCount = Math.max(0, Math.floor(Number(item.inventoryRemainingCount) || 0));
+                // Old escrow-era rows stored a frozen remaining count. Do not recreate escrow or
+                // infer historical sales from it; future availability is always seller live stock.
+                return { ...item, inventoryRemainingCount, soldCount: Math.max(0, Math.floor(Number(item.soldCount) || 0)) };
+              })
+          };
+        });
+      shopState.purchases = (Array.isArray(savedShop?.purchases) ? savedShop.purchases : [])
+        .filter((entry) => entry?.uuid && players.has(entry.buyerUuid))
+        .slice(-2000);
+      const now = Date.now();
+      shopState.pins = {};
+      for (const [shopUuid, expiresAt] of Object.entries(savedShop?.pins || {})) {
+        if (shopState.shops.some((shop) => shop.uuid === shopUuid) && Number(expiresAt) > now) shopState.pins[shopUuid] = Number(expiresAt);
+      }
+      shopState.pinCooldowns = {};
+      for (const [playerUuid, expiresAt] of Object.entries(savedShop?.pinCooldowns || {})) {
+        if (players.has(playerUuid) && Number(expiresAt) > now) shopState.pinCooldowns[playerUuid] = Number(expiresAt);
+      }
+    }
+    if (fs.existsSync(villageDataFile)) {
+      const savedVillage = readJsonFileSafe(villageDataFile, "village.json");
+      villageState.buildings = Array.isArray(savedVillage?.buildings) ? savedVillage.buildings.filter((entry) => entry && typeof entry === "object") : [];
+      const savedService = savedVillage?.homeService && typeof savedVillage.homeService === "object" ? savedVillage.homeService : {};
+      villageState.homeService = {
+        paidUntil: typeof savedService.paidUntil === "string" ? savedService.paidUntil : null,
+        cycleDays: Math.max(1, Math.min(365, Math.floor(Number(savedService.cycleDays) || HOME_SERVICE_CYCLE_DAYS))),
+        fundsGold: Math.max(0, Math.floor(Number(savedService.fundsGold) || 0)),
+        fundingFeeGold: Math.max(0, Math.floor(Number(savedService.fundingFeeGold) || 0)),
+        fundingLevel: Math.max(0, Math.floor(Number(savedService.fundingLevel) || 0))
+      };
+      villageState.donations = {};
+      for (const [key, record] of Object.entries(savedVillage?.donations || {})) {
+        if (!record || record.status !== "committed" || !Number.isSafeInteger(Number(record.count)) || Number(record.count) < 1) continue;
+        villageState.donations[key] = record;
+      }
+      villageState.buildingDonations = Array.isArray(savedVillage?.buildingDonations)
+        ? savedVillage.buildingDonations.filter((entry) => entry && typeof entry === "object")
+        : [];
+      villageState.buildingRequests = {};
+      for (const [key, record] of Object.entries(savedVillage?.buildingRequests || {})) {
+        if (!record || record.status !== "committed" || typeof record.signature !== "string") continue;
+        try {
+          const semantics = JSON.parse(record.signature);
+          record.buildingType ||= semantics?.buildingType;
+          record.phaseId ||= semantics?.phaseId;
+        } catch {}
+        villageState.buildingRequests[key] = record;
+      }
+      villageState.phaseSequence = Math.max(0, Math.floor(Number(savedVillage?.phaseSequence) || 0));
+    }
+    // PREPARED 日志包含事务后的完整玩家/村庄快照。若进程在两个 JSON rename 之间退出，启动时
+    // 无条件重放这个终态；同一 requestId 随后会命中 donations，保证不会重复扣款。
+    if (fs.existsSync(homeServiceWalFile)) {
+      const wal = readJsonFileSafe(homeServiceWalFile, "home-service-transaction.json");
+      if (!wal) {
+        // 无法解析的 WAL 不能重放，但也不能让它阻断其它存档加载；保留原文件便于人工排查。
+        console.error("[persist] 家政 WAL 无法解析，已跳过重放并保留原文件");
+      } else if (wal.status === "prepared") {
+        try {
+          replayPreparedVillageTransaction(wal);
+        } catch (replayError) {
+          // 结构非法同样无法重放；记录后继续启动，避免整站存档读取被中断。
+          console.error("[persist] 家政 WAL 重放失败，已跳过并保留原文件:", replayError.message);
+        }
+      } else {
+        fs.rmSync(homeServiceWalFile, { force: true });
+      }
+    }
+    if (phaseOneMigrationNeeded) writeJsonAtomic(playerDataFile, [...players.values()].map(playerPersistenceView));
   } catch (error) {
     console.error("failed to load persisted game state", error);
   }
@@ -590,17 +1409,30 @@ function flushPersistedState() {
     return;
   }
   persistInProgress = true;
+  if (phaseOneTestHooksEnabled) testPersistenceCounters.fullFlushStarted += 1;
   try {
-    fs.mkdirSync(path.dirname(playerDataFile), { recursive: true });
-    writeJsonAtomic(playerDataFile, [...players.values()].map(playerPersistenceView));
     writeJsonAtomic(marketDataFile, [...marketTrades.values()].map(marketPersistenceView));
+    writeJsonAtomic(socialDataFile, socialPersistenceView());
+    writeJsonAtomic(auctionDataFile, auctionPersistenceView());
+    writeJsonAtomic(shopDataFile, shopPersistenceView());
+    writeJsonAtomic(villageDataFile, villagePersistenceView());
     writeJsonAtomic(battleRoomFile, {
       version: 1,
       savedAt: new Date().toISOString(),
       rooms: [...battleRooms.values()].map(battleRoomPersistenceView)
     });
+    writePlayersJsonNow();
+    if (phaseOneTestHooksEnabled) {
+      testPersistenceCounters.fullFlushCompleted += 1;
+      if (testPhaseOneRetryReady && testPhaseOneRetriesPending > 0) {
+        testPhaseOneRetryReady = false;
+        testPhaseOneRetriesPending -= 1;
+        testPersistenceCounters.phaseOneRetryCompleted += 1;
+      }
+    }
   } catch (error) {
     console.error("failed to persist game state", error);
+    throw error;
   } finally {
     persistInProgress = false;
     if (persistRequested) {
@@ -659,10 +1491,16 @@ function restoreBattleRooms() {
 }
 
 function schedulePersist() {
+  if (phaseOneTestHooksEnabled && testFullFlushFrozen) {
+    persistRequested = true;
+    return;
+  }
   if (persistTimer) return;
   persistTimer = setTimeout(() => {
     persistTimer = null;
-    flushPersistedState();
+    try {
+      flushPersistedState();
+    } catch {}
   }, 50);
 }
 
@@ -919,6 +1757,21 @@ function handleMarketEvent(socket, event, payload) {
     if (event.includes("Seller")) profile.extraSeller += 1;
     else profile.extraBuyer += 1;
     emitGameEvent(socket, `${event}:success`, marketListingLimits(player));
+    return true;
+  }
+  if (event === "newMarket:getRecentTradedResources") {
+    // 最近成交/挂单涉及的商品：按创建时间倒序取最近的去重资源，供市场页「最近交易」快捷筛选。
+    const limit = Math.max(1, Math.min(50, Math.floor(Number(data?.limit) || 20)));
+    const seen = new Set();
+    const resourceIds = [];
+    for (const trade of [...marketTrades.values()].sort((left, right) => String(right.createTime || "").localeCompare(String(left.createTime || "")))) {
+      const id = trade.sellResourceId;
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      resourceIds.push(id);
+      if (resourceIds.length >= limit) break;
+    }
+    emitGameEvent(socket, `${event}:success`, { resourceIds });
     return true;
   }
   if (event === "market:listToMarket") {
@@ -1264,6 +2117,7 @@ app.get("/api/gm/players/:uuid", requireGM, (req, res) => {
     title: player.title,
     option: player.option || {},
     resources: player.resources,
+    sponsorPoint: player.sponsorPoint || { current: 0, max: 0 },
     inventory: player.inventory,
     status: getPlayerStatus(player),
     taskQueue: player.taskQueue,
@@ -1604,19 +2458,34 @@ app.get("/api/game/user/batch_profile", requirePlayer, (req, res) => {
 });
 app.get("/api/game/user/online", requirePlayer, (req, res) => ok(res, { online: true, uuid: req.player.uuid }));
 app.post("/api/game/user/online", requirePlayer, (req, res) => ok(res, { online: true, uuid: req.player.uuid, fp: req.body?.fp || null }));
-app.post("/api/game/user/switch_account", requirePlayer, (_req, res) => ok(res, publicUser(req.player)));
-app.get("/api/game/kitty/profile", requirePlayer, (req, res) => ok(res, { uuid: req.player.uuid, kitty: req.player.kitty }));
-// 本地还没有公会系统，这里是占位：uuid 原样回传（前端 GuildInfo 会校验 data.uuid === 查询的 uuid），
-// 名字统一显示「猫猫村」——所有猫都属于同一个村。查不到的 uuid 返回 404，避免前端把脏数据写进缓存。
+app.post("/api/game/user/switch_account", requirePlayer, (_req, res) => sendUnsupportedFeature(res, "subAccount", "子账号切换功能尚未实现"));
+app.get("/api/game/kitty/profile", requirePlayer, (req, res) => {
+  const uuid = typeof req.query.uuid === "string" ? req.query.uuid.trim() : "";
+  if (!uuid) return res.status(400).json({ code: "INVALID_UUID", msg: "缺少小猫 UUID", message: "缺少小猫 UUID" });
+  for (const owner of players.values()) {
+    const kitty = (Array.isArray(owner.kitty) ? owner.kitty : []).find((entry) => entry?.uuid === uuid);
+    if (!kitty) continue;
+    return ok(res, {
+      uuid: kitty.uuid,
+      name: typeof kitty.name === "string" && kitty.name ? kitty.name : "猫咪",
+      owner: owner.uuid,
+      isWorking: Boolean(kitty.isWorking || kitty.currentActionId),
+      actionId: typeof kitty.currentActionId === "string" ? kitty.currentActionId : null
+    });
+  }
+  return res.status(404).json({ code: "KITTY_NOT_FOUND", msg: "小猫不存在", message: "小猫不存在" });
+});
 app.get("/api/game/guild/profile", requirePlayer, (req, res) => {
   const uuid = typeof req.query.uuid === "string" ? req.query.uuid.trim() : "";
-  if (uuid && !players.get(uuid)) return res.status(404).json({ code: 404, msg: "玩家不存在" });
-  return ok(res, { uuid: uuid || req.player.uuid, name: "猫猫村" });
+  if (!uuid) return res.status(400).json({ code: "INVALID_UUID", msg: "缺少公会 UUID", message: "缺少公会 UUID" });
+  const guild = guildByUuid(uuid);
+  if (!guild) return res.status(404).json({ code: "GUILD_NOT_FOUND", msg: "公会不存在", message: "公会不存在" });
+  return ok(res, publicGuild(guild));
 });
 app.get("/api/game/market/price", requirePlayer, (req, res) => ok(res, marketPricePayload(req.query.resourceId || null)));
 app.get("/api/game/onboarding/status", requirePlayer, (_req, res) => ok(res, { seen: true }));
 app.post("/api/game/onboarding/mark-seen", requirePlayer, (_req, res) => ok(res, { seen: true }));
-app.get("/api/game/sponsor/service-usage", requirePlayer, (_req, res) => ok(res, { used: 0, limit: 0 }));
+app.get("/api/game/sponsor/service-usage", requirePlayer, (_req, res) => sendUnsupportedFeature(res, "sponsorServiceUsage", "赞助服务用量尚未实现"));
 app.post("/api/game/tmp_notification/get_notification_info", requirePlayer, (_req, res) => ok(res, { is_unread: false }));
 
 const PROFILE_NAME_MAX = 24;
@@ -1663,26 +2532,1339 @@ function applyCharacterProfileUpdate(player, data) {
   return { profile: publicProfileView(player, player.uuid) };
 }
 
+// ── 好友 / 聊天 ────────────────────────────────────────────────────────────────
+const CHAT_CONTENT_MAX = 500;
+const CHAT_HISTORY_LIMIT = 200;
+
+function friendshipKey(left, right) {
+  return [String(left), String(right)].sort().join(":");
+}
+
+function areFriends(left, right) {
+  const key = friendshipKey(left, right);
+  return socialState.friendships.some((pair) => friendshipKey(pair[0], pair[1]) === key);
+}
+
+function blockedBy(viewerUuid, senderUuid) {
+  return (socialState.blocks[viewerUuid] || []).includes(senderUuid);
+}
+
+function socialSockets(uuid) {
+  return [...io.sockets.sockets.values()].filter((connected) => connected.player?.uuid === uuid);
+}
+
+function emitSocialTo(uuid, event, payload) {
+  for (const connected of socialSockets(uuid)) emitGameEvent(connected, event, payload);
+}
+
+function safeChatContent(raw) {
+  const content = typeof raw === "string" ? raw.trim() : "";
+  if (!content) return { error: "消息不能为空" };
+  if ([...content].length > CHAT_CONTENT_MAX) return { error: `消息不能超过${CHAT_CONTENT_MAX}个字符` };
+  // 前端把普通文本片段送入 innerHTML；编码尖括号/引号可阻止标签、事件属性与实体绕过。
+  return {
+    content: content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;")
+  };
+}
+
+function makeChatMessage(player, content, receiverId = null, receiverName = null) {
+  const publicStyle = publicStyleView(player);
+  const diy = publicStyle.currentChatBubbleStyle === "" && hasDiyStyleEntitlement(player)
+    ? structuredClone(normalizeStyleState(player.style, player.uniqueFlag).diyChatBubbleStyle)
+    : undefined;
+  return {
+    id: crypto.randomUUID(),
+    sender: player.uuid,
+    sender_name: player.name,
+    receiver_id: receiverId,
+    receiver_name: receiverName,
+    content,
+    extra2: {
+      ...publicStyle,
+      bubble: publicStyle.currentChatBubbleStyle,
+      ...(diy ? { bubbleDiyStyle: diy } : {})
+    },
+    created_At: new Date().toISOString()
+  };
+}
+
+function visibleChatList(player, predicate) {
+  return socialState.chatMessages.filter((message) => predicate(message)
+    && (message.channel !== "iron" || isIronPlayer(player))
+    && !blockedBy(player.uuid, message.sender)).slice(-CHAT_HISTORY_LIMIT);
+}
+
+function handleFriendEvent(socket, event, data) {
+  const player = socket.player;
+  if (!player) return true;
+  const fail = (suffix, message) => {
+    emitGameEvent(socket, `friend:${suffix}:fail`, { message });
+    return true;
+  };
+  if (event === "friend:getList") {
+    const uuids = socialState.friendships.flatMap((pair) => pair.includes(player.uuid) ? pair.filter((uuid) => uuid !== player.uuid) : []);
+    emitGameEvent(socket, "friend:list", { list: [...new Set(uuids)].map((uuid) => players.get(uuid)).filter(Boolean).map(publicSocialProfile) });
+    return true;
+  }
+  if (event === "friend:getRequests") {
+    emitGameEvent(socket, "friend:requests", { requests: socialState.friendRequests.filter((request) => request.toUserUuid === player.uuid && request.status === "PENDING") });
+    return true;
+  }
+  if (event === "friend:sendRequest") {
+    const name = typeof data?.toUserName === "string" ? data.toUserName.trim() : "";
+    const matches = [...players.values()].filter((candidate) => candidate.name === name);
+    if (!matches.length) return fail("request:send", "找不到该玩家");
+    if (matches.length > 1) return fail("request:send", "有多个同名玩家，请使用更精确的昵称");
+    const target = matches[0];
+    if (target.uuid === player.uuid) return fail("request:send", "不能添加自己为好友");
+    if (areFriends(player.uuid, target.uuid)) return fail("request:send", "你们已经是好友");
+    const duplicate = socialState.friendRequests.find((request) => request.status === "PENDING" && friendshipKey(request.fromUserUuid, request.toUserUuid) === friendshipKey(player.uuid, target.uuid));
+    if (duplicate) return fail("request:send", "已有待处理的好友请求");
+    const request = { id: crypto.randomUUID(), fromUserUuid: player.uuid, toUserUuid: target.uuid, status: "PENDING", createdAt: new Date().toISOString() };
+    socialState.friendRequests.push(request);
+    schedulePersist();
+    emitGameEvent(socket, "friend:request:send:success", { request, toUserUuid: target.uuid });
+    emitSocialTo(target.uuid, "friend:request:received", { fromUserUuid: player.uuid, request });
+    return true;
+  }
+  if (event === "friend:acceptRequest" || event === "friend:rejectRequest") {
+    const request = socialState.friendRequests.find((candidate) => candidate.id === data?.requestId);
+    const action = event === "friend:acceptRequest" ? "accept" : "reject";
+    if (!request || request.toUserUuid !== player.uuid || request.status !== "PENDING") return fail(`request:${action}`, "好友请求不存在或已处理");
+    request.status = action === "accept" ? "ACCEPTED" : "REJECTED";
+    request.updatedAt = new Date().toISOString();
+    if (action === "accept" && !areFriends(request.fromUserUuid, request.toUserUuid)) socialState.friendships.push([request.fromUserUuid, request.toUserUuid]);
+    schedulePersist();
+    emitGameEvent(socket, `friend:request:${action}:success`, { request });
+    emitSocialTo(request.fromUserUuid, action === "accept" ? "friend:request:accepted" : "friend:request:rejected", action === "accept"
+      ? { fromUserUuid: player.uuid, toUserUuid: request.fromUserUuid, requestId: request.id }
+      : { toUserUuid: request.fromUserUuid, requestId: request.id });
+    return true;
+  }
+  if (event === "friend:remove") {
+    const targetUuid = String(data?.friendUuid || "");
+    if (!areFriends(player.uuid, targetUuid)) return fail("remove", "该玩家不在好友列表中");
+    const key = friendshipKey(player.uuid, targetUuid);
+    socialState.friendships = socialState.friendships.filter((pair) => friendshipKey(pair[0], pair[1]) !== key);
+    schedulePersist();
+    emitGameEvent(socket, "friend:remove:success", { friendUuid: targetUuid });
+    emitSocialTo(targetUuid, "friend:removed", { userUuid: player.uuid });
+    return true;
+  }
+  return false;
+}
+
+function guildByUuid(uuid) {
+  return socialState.guilds.find((guild) => guild.uuid === uuid) || null;
+}
+
+function guildForPlayer(uuid) {
+  return socialState.guilds.find((guild) => Array.isArray(guild.members) && guild.members.some((member) => member.uuid === uuid)) || null;
+}
+
+function guildMember(guild, uuid) {
+  return guild?.members?.find((member) => member.uuid === uuid) || null;
+}
+
+function publicGuild(guild) {
+  return {
+    uuid: guild.uuid,
+    name: guild.name,
+    description: guild.description || "",
+    type: [...(guild.type || [])],
+    owner: guild.owner,
+    ironcat: Boolean(guild.ironcat),
+    level: Math.max(1, Math.floor(Number(guild.level) || 1)),
+    memberCount: guild.members?.length || 0,
+    createdAt: guild.createdAt
+  };
+}
+
+function publicGuildTitle(title) {
+  return {
+    uuid: title.uuid,
+    title: title.title,
+    role: title.role,
+    description: title.description || ""
+  };
+}
+
+function publicGuildMember(guild, member) {
+  const profile = players.get(member.uuid);
+  return {
+    ...(profile ? publicSocialProfile(profile) : { uuid: member.uuid, name: "已注销猫猫", avatar: "avatar_1.png" }),
+    guildUuid: guild.uuid,
+    role: member.role,
+    titleUuid: member.titleUuid || null,
+    title: guild.titles?.find((title) => title.uuid === member.titleUuid)?.title || null,
+    joinedAt: member.joinedAt
+  };
+}
+
+function normalizeGuildText(value, maxCodePoints) {
+  const text = typeof value === "string" ? value.trim() : "";
+  return [...text].length <= maxCodePoints ? text : null;
+}
+
+function normalizeGuildTypes(value) {
+  if (!Array.isArray(value)) return null;
+  const types = [...new Set(value.filter((type) => GUILD_TYPES.has(type)))];
+  return types.length === value.length ? types : null;
+}
+
+function emitGuildMembers(guild) {
+  broadcastGuildEvent(guild, "guild:members", { guildUuid: guild.uuid, members: guild.members.map((member) => publicGuildMember(guild, member)) });
+}
+
+function broadcastGuildEvent(guild, event, payload) {
+  for (const member of guild.members || []) emitSocialTo(member.uuid, event, payload);
+}
+
+function handleGuildEvent(socket, event, data) {
+  const player = socket.player;
+  if (!player) return true;
+  const fail = (name, message) => {
+    emitGameEvent(socket, name, { message });
+    return true;
+  };
+  const requestedGuild = guildByUuid(String(data?.guildUuid || ""));
+  const myGuild = guildForPlayer(player.uuid);
+  const myMember = guildMember(myGuild, player.uuid);
+
+  if (event === "guild:getList") {
+    emitGameEvent(socket, "guild:list", { list: socialState.guilds.map(publicGuild) });
+    return true;
+  }
+  if (event === "guild:getMyGuild") {
+    emitGameEvent(socket, "guild:getMyGuild:success", { guild: myGuild ? publicGuild(myGuild) : null });
+    return true;
+  }
+  if (event === "guild:getOtherGuild") {
+    if (!requestedGuild) return fail("guild:getOtherGuild:fail", "公会不存在");
+    emitGameEvent(socket, "guild:getOtherGuild:success", { guild: publicGuild(requestedGuild) });
+    return true;
+  }
+  if (event === "guild:create") {
+    if (myGuild) return fail("guild:create:fail", "你已经加入了一个公会");
+    const name = normalizeGuildText(data?.name, 16);
+    const description = normalizeGuildText(data?.description, 100);
+    const type = normalizeGuildTypes(data?.type);
+    if (!name) return fail("guild:create:fail", "公会名称不能为空且不能超过16个字符");
+    if (description === null || !type) return fail("guild:create:fail", "公会资料不合法");
+    if (socialState.guilds.some((guild) => guild.name.toLocaleLowerCase() === name.toLocaleLowerCase())) return fail("guild:create:fail", "公会名称已被使用");
+    const missing = GUILD_CREATE_COST.find((cost) => getAssetCount(player, cost.id) < cost.count);
+    if (missing) return fail("guild:create:fail", `${resourceCatalog[missing.id]?.name || missing.id}不足，需要${missing.count}`);
+    for (const cost of GUILD_CREATE_COST) removeAsset(player, cost.id, cost.count);
+    const now = new Date().toISOString();
+    const guild = {
+      uuid: crypto.randomUUID(), name, description, type, owner: player.uuid, ironcat: Boolean(player.ironcat || player.isIronCat),
+      level: 1, createdAt: now, updatedAt: now,
+      members: [{ uuid: player.uuid, role: "LEADER", titleUuid: null, joinedAt: now }], titles: []
+    };
+    socialState.guilds.push(guild);
+    socialState.guildJoinRequests = socialState.guildJoinRequests.filter((request) => request.userUuid !== player.uuid || request.status !== "PENDING");
+    schedulePersist();
+    emitGameEvent(socket, "guild:create:success", { guild: publicGuild(guild) });
+    return true;
+  }
+  if (event === "guild:requestJoin") {
+    if (myGuild) return fail("guild:join:request:fail", "你已经加入了一个公会");
+    if (!requestedGuild) return fail("guild:join:request:fail", "公会不存在");
+    const message = normalizeGuildText(data?.message, 200);
+    if (message === null) return fail("guild:join:request:fail", "申请留言不能超过200个字符");
+    if (socialState.guildJoinRequests.some((request) => request.guildUuid === requestedGuild.uuid && request.userUuid === player.uuid && request.status === "PENDING")) return fail("guild:join:request:fail", "已有待处理的入会申请");
+    const request = { id: crypto.randomUUID(), guildUuid: requestedGuild.uuid, userUuid: player.uuid, message: message || "", status: "PENDING", createdAt: new Date().toISOString() };
+    socialState.guildJoinRequests.push(request);
+    schedulePersist();
+    emitGameEvent(socket, "guild:join:request:success", { requestId: request.id });
+    broadcastGuildEvent(requestedGuild, "guild:join:request:received", { request });
+    return true;
+  }
+  if (event === "guild:getJoinRequests") {
+    if (!requestedGuild || !["LEADER", "OFFICER"].includes(guildMember(requestedGuild, player.uuid)?.role)) return fail("guild:join:requests:fail", "无权查看入会申请");
+    emitGameEvent(socket, "guild:join:requests", { guildUuid: requestedGuild.uuid, requests: socialState.guildJoinRequests.filter((request) => request.guildUuid === requestedGuild.uuid) });
+    return true;
+  }
+  if (event === "guild:handleJoinRequest") {
+    if (!requestedGuild || !["LEADER", "OFFICER"].includes(guildMember(requestedGuild, player.uuid)?.role)) return fail("guild:join:handle:fail", "无权处理入会申请");
+    const request = socialState.guildJoinRequests.find((candidate) => candidate.guildUuid === requestedGuild.uuid && candidate.userUuid === data?.userUuid && candidate.status === "PENDING");
+    if (!request) return fail("guild:join:handle:fail", "入会申请不存在或已处理");
+    const approve = data?.approve === true;
+    if (approve && guildForPlayer(request.userUuid)) return fail("guild:join:handle:fail", "该玩家已加入其他公会");
+    request.status = approve ? "APPROVED" : "REJECTED";
+    request.updatedAt = new Date().toISOString();
+    if (approve) requestedGuild.members.push({ uuid: request.userUuid, role: "MEMBER", titleUuid: null, joinedAt: request.updatedAt });
+    socialState.guildJoinRequests.forEach((candidate) => {
+      if (approve && candidate.userUuid === request.userUuid && candidate.status === "PENDING") {
+        candidate.status = candidate.id === request.id ? "APPROVED" : "CANCELLED";
+        candidate.updatedAt = request.updatedAt;
+      }
+    });
+    schedulePersist();
+    emitGameEvent(socket, "guild:join:handle:success", { approve, userUuid: request.userUuid });
+    emitSocialTo(request.userUuid, "guild:join:result", { approve, guild: approve ? publicGuild(requestedGuild) : null });
+    if (approve) emitGuildMembers(requestedGuild);
+    return true;
+  }
+  if (event === "guild:getMembers") {
+    if (!requestedGuild) return fail("guild:members:fail", "公会不存在");
+    emitGameEvent(socket, "guild:members", { guildUuid: requestedGuild.uuid, members: requestedGuild.members.map((member) => publicGuildMember(requestedGuild, member)) });
+    return true;
+  }
+  if (event === "guild:getMyGuildMemberInfo") {
+    if (!requestedGuild) return fail("guild:getMyGuildMemberInfo:fail", "公会不存在");
+    const member = guildMember(requestedGuild, player.uuid);
+    if (!member) return fail("guild:getMyGuildMemberInfo:fail", "你不是该公会成员");
+    emitGameEvent(socket, "guild:getMyGuildMemberInfo:success", { guildUuid: requestedGuild.uuid, member: publicGuildMember(requestedGuild, member) });
+    return true;
+  }
+  if (event === "guild:updateInfo") {
+    if (!requestedGuild || guildMember(requestedGuild, player.uuid)?.role !== "LEADER") return fail("guild:update:fail", "只有会长可以修改公会资料");
+    const name = normalizeGuildText(data?.name, 16);
+    const description = normalizeGuildText(data?.description, 100);
+    const type = normalizeGuildTypes(data?.type);
+    if (!name || description === null || !type) return fail("guild:update:fail", "公会资料不合法");
+    if (socialState.guilds.some((guild) => guild.uuid !== requestedGuild.uuid && guild.name.toLocaleLowerCase() === name.toLocaleLowerCase())) return fail("guild:update:fail", "公会名称已被使用");
+    requestedGuild.name = name; requestedGuild.description = description; requestedGuild.type = type; requestedGuild.updatedAt = new Date().toISOString();
+    schedulePersist();
+    emitGameEvent(socket, "guild:update:success", { guild: publicGuild(requestedGuild) });
+    return true;
+  }
+  if (event === "guild:kickMember") {
+    if (!requestedGuild) return fail("guild:kick:fail", "公会不存在");
+    const actor = guildMember(requestedGuild, player.uuid);
+    const target = guildMember(requestedGuild, String(data?.userUuid || ""));
+    if (!actor || !["LEADER", "OFFICER"].includes(actor.role)) return fail("guild:kick:fail", "无权踢出成员");
+    if (!target || target.role === "LEADER" || target.uuid === player.uuid || (actor.role === "OFFICER" && target.role !== "MEMBER")) return fail("guild:kick:fail", "无法踢出该成员");
+    requestedGuild.members = requestedGuild.members.filter((member) => member.uuid !== target.uuid);
+    schedulePersist();
+    emitGameEvent(socket, "guild:kick:success", { userUuid: target.uuid });
+    emitSocialTo(target.uuid, "guild:kicked", { guildUuid: requestedGuild.uuid });
+    emitGuildMembers(requestedGuild);
+    return true;
+  }
+  if (event === "guild:leave") {
+    if (!myGuild || myGuild.uuid !== String(data?.guildUuid || "")) return fail("guild:leave:fail", "你不是该公会成员");
+    if (myMember.role === "LEADER") return fail("guild:leave:fail", "会长必须先解散公会，不能直接离开");
+    myGuild.members = myGuild.members.filter((member) => member.uuid !== player.uuid);
+    schedulePersist();
+    emitGameEvent(socket, "guild:leave:success", { guildUuid: myGuild.uuid });
+    emitGuildMembers(myGuild);
+    return true;
+  }
+  if (event === "guild:disband") {
+    if (!requestedGuild || requestedGuild.owner !== player.uuid || guildMember(requestedGuild, player.uuid)?.role !== "LEADER") return fail("guild:disband:fail", "只有会长可以解散公会");
+    const memberUuids = requestedGuild.members.map((member) => member.uuid);
+    socialState.guilds = socialState.guilds.filter((guild) => guild.uuid !== requestedGuild.uuid);
+    socialState.guildJoinRequests = socialState.guildJoinRequests.filter((request) => request.guildUuid !== requestedGuild.uuid);
+    socialState.chatMessages = socialState.chatMessages.filter((message) => message.guildUuid !== requestedGuild.uuid);
+    schedulePersist();
+    emitGameEvent(socket, "guild:disband:success", { guildUuid: requestedGuild.uuid });
+    for (const uuid of memberUuids) if (uuid !== player.uuid) emitSocialTo(uuid, "guild:kicked", { guildUuid: requestedGuild.uuid, disbanded: true });
+    return true;
+  }
+  if (event === "guild:title:list") {
+    if (!requestedGuild) return fail("guild:title:list:fail", "公会不存在");
+    emitGameEvent(socket, "guild:title:list:success", { titles: (requestedGuild.titles || []).map(publicGuildTitle) });
+    return true;
+  }
+  if (["guild:title:add", "guild:title:update", "guild:title:delete", "guild:title:set"].includes(event)) {
+    if (!requestedGuild || guildMember(requestedGuild, player.uuid)?.role !== "LEADER") return fail(`${event}:fail`, "只有会长可以管理公会头衔");
+    requestedGuild.titles ||= [];
+    if (event === "guild:title:delete") {
+      const titleIndex = requestedGuild.titles.findIndex((title) => title.uuid === data?.titleUuid);
+      if (titleIndex < 0) return fail("guild:title:delete:fail", "头衔不存在");
+      requestedGuild.titles.splice(titleIndex, 1);
+      requestedGuild.members.forEach((member) => { if (member.titleUuid === data?.titleUuid) member.titleUuid = null; });
+    } else if (event === "guild:title:set") {
+      const member = guildMember(requestedGuild, String(data?.userUuid || ""));
+      const title = requestedGuild.titles.find((entry) => entry.uuid === data?.titleUuid);
+      if (!member || (data?.titleUuid && !title)) return fail("guild:title:set:fail", "成员或头衔不存在");
+      if (title && title.role !== member.role) return fail("guild:title:set:fail", "该头衔不适用于成员当前职务");
+      member.titleUuid = title?.uuid || null;
+    } else {
+      const title = normalizeGuildText(data?.title, 24);
+      const description = normalizeGuildText(data?.description, 40);
+      const role = String(data?.role || "");
+      if (!title || description === null || !GUILD_ROLES.has(role)) return fail(`${event}:fail`, "头衔资料不合法");
+      if (event === "guild:title:add") requestedGuild.titles.push({ uuid: crypto.randomUUID(), title, description, role });
+      else {
+        const current = requestedGuild.titles.find((entry) => entry.uuid === data?.titleUuid);
+        if (!current) return fail("guild:title:update:fail", "头衔不存在");
+        current.title = title; current.description = description; current.role = role;
+        requestedGuild.members.forEach((member) => { if (member.titleUuid === current.uuid && member.role !== role) member.titleUuid = null; });
+      }
+    }
+    schedulePersist();
+    emitGameEvent(socket, `${event}:success`, { guildUuid: requestedGuild.uuid });
+    return true;
+  }
+  return false;
+}
+
+function roomMemberIds(roomId) {
+  return battleRooms.get(roomId)?.memberIds || [];
+}
+
+function handleChatEvent(socket, event, data) {
+  const player = socket.player;
+  if (!player) return true;
+  const error = (name, message) => {
+    emitGameEvent(socket, name, { message });
+    return true;
+  };
+  if (event === "chat:getPublicChatList") {
+    emitGameEvent(socket, "chat:getChatList:success", { list: visibleChatList(player, (message) => message.channel === "public") });
+    return true;
+  }
+  if (event === "chat:getIronPublicChatList") {
+    if (!isIronPlayer(player)) return error("chat:createComment:error", "仅铁猫角色可以使用铁猫频道");
+    emitGameEvent(socket, "chat:getIronPublicChatList:success", { list: visibleChatList(player, (message) => message.channel === "iron") });
+    return true;
+  }
+  if (event === "chat:getAllPrivateChatList") {
+    emitGameEvent(socket, "chat:getAllPrivateChatList:success", { list: visibleChatList(player, (message) => message.channel === "private" && [message.sender, message.receiver_id].includes(player.uuid)) });
+    return true;
+  }
+  if (event === "chat:getPrivateChatList") {
+    const targetUuid = String(data?.receiverUuid || "");
+    emitGameEvent(socket, "chat:getPrivateChatList:success", { list: visibleChatList(player, (message) => message.channel === "private" && friendshipKey(message.sender, message.receiver_id) === friendshipKey(player.uuid, targetUuid)) });
+    return true;
+  }
+  if (event === "chat:getRoomChatList") {
+    const roomId = String(data?.roomId || "");
+    if (!roomMemberIds(roomId).includes(player.uuid)) return error("chat:createComment:error", "你不在该房间中");
+    emitGameEvent(socket, "chat:getRoomChatList:success", { list: visibleChatList(player, (message) => message.channel === "room" && message.roomId === roomId) });
+    return true;
+  }
+  if (event === "chat:getGuildChatList") {
+    const guild = guildByUuid(String(data?.guildUuid || ""));
+    if (!guild || !guildMember(guild, player.uuid)) return error("chat:createComment:error", "你不是该公会成员");
+    emitGameEvent(socket, "chat:getGuildChatList:success", { list: visibleChatList(player, (message) => message.channel === "guild" && message.guildUuid === guild.uuid) });
+    return true;
+  }
+  if (event === "chat:getBlockList") {
+    const all = socialState.blocks[player.uuid] || [];
+    emitGameEvent(socket, "chat:blockList:success", { list: { all, public: all } });
+    return true;
+  }
+  if (event === "chat:blockUser" || event === "chat:unblockUser") {
+    const targetUuid = String(data?.targetUuid || "").toLowerCase();
+    const verb = event === "chat:blockUser" ? "block" : "unblock";
+    if (!players.has(targetUuid) || targetUuid === player.uuid) return error(`chat:${verb}:error`, "玩家不存在或无法操作");
+    const blocked = new Set(socialState.blocks[player.uuid] || []);
+    if (verb === "block") blocked.add(targetUuid); else blocked.delete(targetUuid);
+    socialState.blocks[player.uuid] = [...blocked];
+    schedulePersist();
+    emitGameEvent(socket, `chat:${verb}:success`, { targetUuid });
+    return true;
+  }
+  const checked = safeChatContent(data?.content);
+  if (checked.error) {
+    if (event === "chat:createPublicChatMsg") {
+      return error("chat:createPublicMessage:error", checked.error);
+    }
+    const name = event === "chat:createPrivateChatMsg" ? "chat:createPrivateChatMsg:error" : "chat:createComment:error";
+    return error(name, checked.error);
+  }
+  let message;
+  let recipients = [];
+  let pushedEvent;
+  if (event === "chat:createPublicChatMsg" || event === "chat:createIronPublicChatMsg") {
+    const iron = event === "chat:createIronPublicChatMsg";
+    if (iron && !isIronPlayer(player)) return error("chat:createComment:error", "仅铁猫角色可以使用铁猫频道");
+    message = makeChatMessage(player, checked.content);
+    message.channel = iron ? "iron" : "public";
+    pushedEvent = iron ? "chat:newIronPublicChatMsg" : "chat:newPublicChatMsg";
+    recipients = iron ? [...players.values()].filter(isIronPlayer).map((candidate) => candidate.uuid) : [...players.keys()];
+  } else if (event === "chat:createPrivateChatMsg") {
+    const targetUuid = String(data?.toUser || "");
+    if (!players.has(targetUuid) || targetUuid === player.uuid) return error("chat:createPrivateChatMsg:error", "私聊对象不存在");
+    if (!areFriends(player.uuid, targetUuid)) return error("chat:createPrivateChatMsg:error", "只能给好友发送私聊消息");
+    if (blockedBy(targetUuid, player.uuid)) return error("chat:createPrivateChatMsg:error", "对方无法接收你的消息");
+    message = makeChatMessage(player, checked.content, targetUuid, players.get(targetUuid).name);
+    message.channel = "private";
+    pushedEvent = "chat:newPrivateChatMsg";
+    recipients = [player.uuid, targetUuid];
+  } else if (event === "chat:createGuildChatMsg") {
+    const guild = guildByUuid(String(data?.guildUuid || ""));
+    if (!guild || !guildMember(guild, player.uuid)) return error("chat:createComment:error", "你不是该公会成员");
+    message = makeChatMessage(player, checked.content, `guild:${guild.uuid}`, guild.name);
+    message.channel = "guild";
+    message.guildUuid = guild.uuid;
+    pushedEvent = "chat:newGuildChatMsg";
+    recipients = guild.members.map((member) => member.uuid);
+  } else if (event === "chat:createRoomChatMsg") {
+    const roomId = String(data?.roomId || "");
+    const room = battleRooms.get(roomId);
+    if (!room?.memberIds.includes(player.uuid)) return error("chat:createComment:error", "你不在该房间中");
+    message = makeChatMessage(player, checked.content, `room:${roomId}`, room.name || roomId);
+    message.channel = "room";
+    message.roomId = roomId;
+    pushedEvent = "chat:newRoomChatMsg";
+    recipients = room.memberIds;
+  } else {
+    return false;
+  }
+  socialState.chatMessages.push(message);
+  if (socialState.chatMessages.length > 5000) socialState.chatMessages.splice(0, socialState.chatMessages.length - 5000);
+  schedulePersist();
+  for (const uuid of new Set(recipients)) {
+    if (blockedBy(uuid, player.uuid)) continue;
+    emitSocialTo(uuid, pushedEvent, pushedEvent === "chat:newPublicChatMsg" || pushedEvent === "chat:newIronPublicChatMsg" ? message : { msg: message });
+  }
+  return true;
+}
+
+function auctionPublicView(auction) {
+  const seller = players.get(auction.creator);
+  const topBid = auction.bids.length ? auction.bids.reduce((best, bid) => (Number(bid.amount) > Number(best.amount) ? bid : best)) : null;
+  const topBidAmount = topBid ? Number(topBid.amount) : 0;
+  const metadata = auction.metadata && typeof auction.metadata === "object" ? { ...auction.metadata } : {};
+  if (!metadata.title) metadata.title = resourceCatalog[auction.targetId]?.name || auction.targetId;
+  return {
+    uuid: auction.uuid,
+    creator: auction.creator,
+    creatorName: seller?.name || "未知玩家",
+    targetType: auction.targetType,
+    targetId: auction.targetId,
+    targetCount: auction.targetCount,
+    startPrice: auction.startPrice,
+    currentPrice: Math.max(auction.startPrice, topBidAmount),
+    currentMaxPrice: topBidAmount || null,
+    currentMaxPriceUserUuid: topBid ? topBid.bidder : null,
+    bidCount: auction.bids.length,
+    state: auction.state,
+    endAt: auction.endAt,
+    createdAt: auction.createdAt,
+    metadata
+  };
+}
+
+function auctionFail(socket, name, message) {
+  emitGameEvent(socket, name, { message });
+  return true;
+}
+
+function settleExpiredAuctions() {
+  const now = Date.now();
+  let changed = false;
+  for (const auction of auctionState.auctions) {
+    if (auction.state !== "OPEN" || Date.parse(auction.endAt) > now) continue;
+    const top = auction.bids.length
+      ? auction.bids.reduce((best, bid) => (Number(bid.amount) > Number(best.amount) ? bid : best))
+      : null;
+    if (!top) {
+      // 流拍：物品退回给卖家
+      addAsset(players.get(auction.creator), auction.targetId, auction.targetCount);
+      auction.state = "ENDED";
+    } else {
+      // 成交：物品给买家，金币给卖家（出价时已扣款托管）
+      const buyer = players.get(top.bidder);
+      const seller = players.get(auction.creator);
+      if (buyer) addAsset(buyer, auction.targetId, auction.targetCount);
+      if (seller) addAsset(seller, "gold", top.amount);
+      auction.state = "SETTLED";
+      auction.winner = top.bidder;
+      auction.finalPrice = top.amount;
+    }
+    auction.settledAt = new Date().toISOString();
+    changed = true;
+  }
+  if (changed) schedulePersist();
+}
+
+function handleAuctionEvent(socket, event, data) {
+  const player = socket.player;
+  if (!player) return true;
+  settleExpiredAuctions();
+  if (event === "auction:list") {
+    const query = data?.query || {};
+    const page = Math.max(1, Math.floor(Number(query.page) || 1));
+    const pageSize = Math.max(1, Math.min(100, Math.floor(Number(query.pageSize) || 12)));
+    const search = typeof query.search === "string" ? query.search.trim().toLowerCase() : "";
+    const state = typeof query.state === "string" && query.state ? query.state : "OPEN";
+    let list = auctionState.auctions.filter((auction) => auction.state === state);
+    if (query.targetType) list = list.filter((auction) => auction.targetType === query.targetType);
+    if (search) list = list.filter((auction) => String(auction.targetId).toLowerCase().includes(search));
+    list.sort((left, right) => String(left.endAt).localeCompare(String(right.endAt)) || left.uuid.localeCompare(right.uuid));
+    const total = list.length;
+    const items = list.slice((page - 1) * pageSize, page * pageSize).map(auctionPublicView);
+    emitGameEvent(socket, "auction:list:success", { items, total, page, pageSize });
+    return true;
+  }
+  if (event === "auction:upcoming") {
+    const soon = auctionState.auctions
+      .filter((auction) => auction.state === "OPEN" && Date.parse(auction.endAt) - Date.now() <= 6 * 60 * 60 * 1000)
+      .sort((left, right) => String(left.endAt).localeCompare(String(right.endAt)))
+      .slice(0, 10)
+      .map(auctionPublicView);
+    emitGameEvent(socket, "auction:upcoming:success", { items: soon });
+    return true;
+  }
+  if (event === "auction:detail") {
+    const auction = auctionState.auctions.find((candidate) => candidate.uuid === String(data?.uuid || ""));
+    if (!auction) return auctionFail(socket, "auction:detail:fail", "拍卖不存在");
+    emitGameEvent(socket, "auction:detail:success", { auction: auctionPublicView(auction), bids: auction.bids });
+    return true;
+  }
+  if (event === "auction:history") {
+    const auctionUuid = String(data?.auctionUuid || "");
+    if (auctionUuid) {
+      const auction = auctionState.auctions.find((candidate) => candidate.uuid === auctionUuid);
+      if (!auction) return auctionFail(socket, "auction:history:fail", "拍卖不存在");
+      const history = [...auction.bids]
+        .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
+        .map((bid) => ({ ...bid, userUuid: bid.bidder }));
+      emitGameEvent(socket, "auction:history:success", { history });
+      return true;
+    }
+    const query = data?.query || {};
+    const mine = auctionState.auctions
+      .filter((auction) => auction.creator === player.uuid || auction.bids.some((bid) => bid.bidder === player.uuid))
+      .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
+      .slice(0, Math.max(1, Math.min(100, Math.floor(Number(query.pageSize) || 20))))
+      .map(auctionPublicView);
+    emitGameEvent(socket, "auction:history:success", { items: mine, total: mine.length });
+    return true;
+  }
+  if (event === "auction:create") {
+    const input = data?.input || {};
+    const targetId = typeof input.targetId === "string" ? input.targetId.trim() : "";
+    const targetType = String(input.targetType || "").toUpperCase();
+    const targetCount = Math.floor(Number(input.targetCount));
+    const startPrice = Math.floor(Number(input.startPrice));
+    const endAt = typeof input.endAt === "string" ? new Date(input.endAt) : null;
+    if (!targetId || !["ITEM", "TITLE", "TEXT"].includes(targetType)) return auctionFail(socket, "auction:create:fail", "请填写有效的目标类型与目标 ID");
+    if (!Number.isSafeInteger(targetCount) || targetCount < 1) return auctionFail(socket, "auction:create:fail", "数量必须为大于等于 1 的整数");
+    if (!Number.isSafeInteger(startPrice) || startPrice < 1) return auctionFail(socket, "auction:create:fail", "起价必须为大于等于 1 的整数");
+    if (!endAt || Number.isNaN(endAt.getTime()) || endAt.getTime() <= Date.now()) return auctionFail(socket, "auction:create:fail", "结束时间必须晚于当前时间");
+    if (getAssetCount(player, targetId) < targetCount) return auctionFail(socket, "auction:create:fail", "背包中没有足够的委托物品");
+    removeAsset(player, targetId, targetCount);
+    const auction = {
+      uuid: crypto.randomUUID(),
+      creator: player.uuid,
+      targetType,
+      targetId,
+      targetCount,
+      startPrice,
+      bids: [],
+      state: "OPEN",
+      endAt: endAt.toISOString(),
+      metadata: input.metadata && typeof input.metadata === "object" ? input.metadata : {},
+      createdAt: new Date().toISOString()
+    };
+    auctionState.auctions.push(auction);
+    schedulePersist();
+    emitGameEvent(socket, "auction:create:success", { auction: auctionPublicView(auction) });
+    return true;
+  }
+  if (event === "auction:bid") {
+    const input = data?.input && typeof data.input === "object" ? data.input : data;
+    const auctionUuid = String(input?.auctionUuid || input?.uuid || "");
+    const auction = auctionState.auctions.find((candidate) => candidate.uuid === auctionUuid);
+    if (!auction) return auctionFail(socket, "auction:bid:fail", "拍卖不存在");
+    if (auction.state !== "OPEN") return auctionFail(socket, "auction:bid:fail", "拍卖已结束");
+    if (auction.creator === player.uuid) return auctionFail(socket, "auction:bid:fail", "不能对自己的拍卖出价");
+    const amount = Math.floor(Number(input?.amount));
+    const current = auction.bids.length ? Math.max(...auction.bids.map((bid) => Number(bid.amount) || 0)) : 0;
+    const minimum = Math.max(auction.startPrice, current + 1);
+    if (!Number.isSafeInteger(amount) || amount < minimum) return auctionFail(socket, "auction:bid:fail", `出价必须不低于 ${minimum}`);
+    if (getAssetCount(player, "gold") < amount) return auctionFail(socket, "auction:bid:fail", "金币不足");
+    removeAsset(player, "gold", amount);
+    const previous = auction.bids.reduce((best, bid) => (!best || Number(bid.amount) > Number(best.amount) ? bid : best), null);
+    if (previous) {
+      const previousBidder = players.get(previous.bidder);
+      if (previousBidder) addAsset(previousBidder, "gold", Number(previous.amount));
+    }
+    auction.bids.push({ bidder: player.uuid, amount, createdAt: new Date().toISOString() });
+    schedulePersist();
+    emitGameEvent(socket, "auction:bid:success", { auction: auctionPublicView(auction) });
+    return true;
+  }
+  if (event === "auction:cancel") {
+    const auctionUuid = String(data?.auctionUuid || data?.uuid || "");
+    const auction = auctionState.auctions.find((candidate) => candidate.uuid === auctionUuid);
+    if (!auction) return auctionFail(socket, "auction:cancel:fail", "拍卖不存在");
+    if (auction.creator !== player.uuid) return auctionFail(socket, "auction:cancel:fail", "只有委托者可以取消");
+    if (auction.state !== "OPEN") return auctionFail(socket, "auction:cancel:fail", "拍卖已结束");
+    if (auction.bids.length) return auctionFail(socket, "auction:cancel:fail", "已有出价，不能取消");
+    addAsset(player, auction.targetId, auction.targetCount);
+    auction.state = "CANCELLED";
+    auction.settledAt = new Date().toISOString();
+    schedulePersist();
+    emitGameEvent(socket, "auction:cancel:success", { uuid: auction.uuid });
+    return true;
+  }
+  return false;
+}
+
+function shopItemView(item, seller) {
+  const soldCount = Math.max(0, Math.floor(Number(item.soldCount) || 0));
+  const reserve = Math.max(0, Math.floor(Number(item.inventoryRemainingCount) || 0));
+  const remaining = seller
+    ? Math.max(0, getAssetCount(seller, item.resourceId) - reserve)
+    : Math.max(0, Math.floor(Number(item.remaining) || 0));
+  return {
+    uuid: item.uuid,
+    resourceId: item.resourceId,
+    name: resourceCatalog[item.resourceId]?.name || item.resourceId,
+    count: remaining + soldCount,
+    remaining,
+    availableCount: remaining,
+    soldCount,
+    inventoryRemainingCount: Math.max(0, Math.floor(Number(item.inventoryRemainingCount) || 0)),
+    state: remaining > 0 ? "ACTIVE" : "OUT",
+    sellerUuid: item.sellerUuid || null,
+    currencyResourceId: PLAYER_SHOP_CURRENCY_ID,
+    unitPrice: item.unitPrice,
+    comment: item.comment || "",
+    perPlayerDailyLimit: item.perPlayerDailyLimit || 0,
+    perPlayerLimitIntervalDays: item.perPlayerLimitIntervalDays || 1,
+    createdAt: item.createdAt
+  };
+}
+
+function shopView(shop) {
+  const owner = players.get(shop.owner);
+  const items = (shop.items || []).filter((item) => shopItemView({ ...item, sellerUuid: shop.owner }, owner).availableCount > 0 && Date.parse(shop.expiresAt) > Date.now());
+  const itemViews = items.map((item) => shopItemView({ ...item, sellerUuid: shop.owner }, owner));
+  return {
+    uuid: shop.uuid,
+    owner: shop.owner,
+    ownerName: owner?.name || "未知玩家",
+    sellerUuid: shop.owner,
+    name: shop.name,
+    description: shop.description || "",
+    visibility: shop.visibility || "PUBLIC",
+    state: Date.parse(shop.expiresAt) > Date.now() ? "OPEN" : "CLOSED",
+    expiresAt: shop.expiresAt,
+    createdAt: shop.createdAt,
+    itemCount: itemViews.length,
+    maxItems: shopCapacity(shop),
+    sellResource: [...new Set(itemViews.map((item) => item.resourceId))],
+    items: itemViews
+  };
+}
+
+function shopFail(socket, name, message) {
+  emitGameEvent(socket, name, { message });
+  return true;
+}
+
+function pruneShopPins() {
+  const now = Date.now();
+  let changed = false;
+  for (const [shopUuid, expiresAt] of Object.entries(shopState.pins)) {
+    if (Number(expiresAt) <= now || !shopState.shops.some((shop) => shop.uuid === shopUuid)) {
+      delete shopState.pins[shopUuid];
+      changed = true;
+    }
+  }
+  for (const [playerUuid, expiresAt] of Object.entries(shopState.pinCooldowns)) {
+    if (Number(expiresAt) <= now || !players.has(playerUuid)) {
+      delete shopState.pinCooldowns[playerUuid];
+      changed = true;
+    }
+  }
+  if (changed) schedulePersist();
+}
+
+function pinnedShopList() {
+  pruneShopPins();
+  return Object.entries(shopState.pins)
+    .sort((left, right) => Number(right[1]) - Number(left[1]) || left[0].localeCompare(right[0]))
+    .map(([shopUuid, expiresAt]) => ({ shopUuid, expiresAt: new Date(Number(expiresAt)).toISOString() }));
+}
+
+function shopCapacity(shop) {
+  return PLAYER_SHOP_BASE_ITEMS + Math.max(0, Math.min(PLAYER_SHOP_MAX_EXTRA_ITEMS, Math.floor(Number(shop?.extraItemSlots) || 0)));
+}
+
+function handlePlayerShopEvent(socket, event, data) {
+  const player = socket.player;
+  if (!player) return true;
+  const myShops = () => shopState.shops.filter((shop) => shop.owner === player.uuid);
+  if (event === "playerShop:my") {
+    emitGameEvent(socket, "playerShop:my:success", { shops: myShops().map(shopView) });
+    return true;
+  }
+  if (event === "playerShop:public") {
+    const pinned = new Set(pinnedShopList().map((entry) => entry.shopUuid));
+    const shops = shopState.shops
+      .filter((shop) => (shop.visibility || "PUBLIC") === "PUBLIC" && Date.parse(shop.expiresAt) > Date.now())
+      .map(shopView)
+      .filter((shop) => shop.items.length > 0)
+      .sort((left, right) => Number(pinned.has(right.uuid)) - Number(pinned.has(left.uuid)) || String(right.createdAt).localeCompare(String(left.createdAt)));
+    emitGameEvent(socket, "playerShop:public:success", { shops });
+    return true;
+  }
+  if (event === "playerShop:detail") {
+    const shop = shopState.shops.find((candidate) => candidate.uuid === String(data?.shopUuid || ""));
+    if (!shop) return shopFail(socket, "playerShop:detail:error", "店铺不存在");
+    emitGameEvent(socket, "playerShop:detail:success", { shop: shopView(shop), items: shopView(shop).items });
+    return true;
+  }
+  if (event === "playerShop:getPinned") {
+    const pinned = pinnedShopList();
+    const cooldownRemainingSec = Math.max(0, Math.ceil((Number(shopState.pinCooldowns[player.uuid]) - Date.now()) / 1000) || 0);
+    emitGameEvent(socket, "playerShop:getPinned:success", {
+      pinned,
+      cooldownRemainingSec,
+      canPin: cooldownRemainingSec === 0 && pinned.length < PLAYER_SHOP_MAX_GLOBAL_PINS,
+      currentPinnedCount: pinned.length,
+      maxGlobalPins: PLAYER_SHOP_MAX_GLOBAL_PINS
+    });
+    return true;
+  }
+  if (event === "playerShop:getListingLimits") {
+    const mine = myShops();
+    const primaryShop = mine[0] || null;
+    const extraSeller = primaryShop ? Math.max(0, Math.min(PLAYER_SHOP_MAX_EXTRA_ITEMS, Math.floor(Number(primaryShop.extraItemSlots) || 0))) : 0;
+    const schemeUsage = {
+      default: Math.max(0, Math.min(PLAYER_SHOP_DEFAULT_SCHEME_MAX_USES, Math.floor(Number(primaryShop?.schemeUsage?.default) || 0))),
+      fast: Math.max(0, Math.floor(Number(primaryShop?.schemeUsage?.fast) || 0))
+    };
+    const atCapacity = extraSeller >= PLAYER_SHOP_MAX_EXTRA_ITEMS;
+    const allowedSchemes = atCapacity
+      ? []
+      : [schemeUsage.default < PLAYER_SHOP_DEFAULT_SCHEME_MAX_USES ? "default" : null, "fast"].filter(Boolean);
+    emitGameEvent(socket, "playerShop:getListingLimits:success", {
+      maxShops: PLAYER_SHOP_MAX_SHOPS,
+      maxSlots: PLAYER_SHOP_BASE_ITEMS + extraSeller,
+      maxItemsPerShop: PLAYER_SHOP_BASE_ITEMS + extraSeller,
+      currentShopCount: mine.length,
+      currentItemCount: mine.reduce((sum, shop) => sum + (shop.items || []).length, 0),
+      extra: extraSeller,
+      extraSeller,
+      allowedSchemes,
+      schemeUsage,
+      schemeRemaining: {
+        default: Math.max(0, PLAYER_SHOP_DEFAULT_SCHEME_MAX_USES - schemeUsage.default),
+        fast: atCapacity ? 0 : "infinity"
+      }
+    });
+    return true;
+  }
+  if (event === "playerShop:create") {
+    const name = typeof data?.name === "string" ? data.name.trim() : "";
+    if (!name) return shopFail(socket, "playerShop:create:error", "请填写店铺名称");
+    if (myShops().length >= PLAYER_SHOP_MAX_SHOPS) return shopFail(socket, "playerShop:create:error", `最多开设 ${PLAYER_SHOP_MAX_SHOPS} 家店铺`);
+    if (getAssetCount(player, "playerShopLicense") < 1) return shopFail(socket, "playerShop:create:error", "缺少店铺营业许可");
+    const now = new Date();
+    const shop = {
+      uuid: crypto.randomUUID(),
+      owner: player.uuid,
+      name,
+      description: typeof data?.description === "string" ? data.description.slice(0, 200) : "",
+      visibility: data?.visibility === "PRIVATE" ? "PRIVATE" : "PUBLIC",
+      items: [],
+      extraItemSlots: 0,
+      schemeUsage: { default: 0, fast: 0 },
+      expiresAt: new Date(now.getTime() + PLAYER_SHOP_DAYS * 86400000).toISOString(),
+      createdAt: now.toISOString()
+    };
+    removeAsset(player, "playerShopLicense", 1);
+    shopState.shops.push(shop);
+    schedulePersist();
+    emitGameEvent(socket, "playerShop:create:success", { shop: shopView(shop) });
+    return true;
+  }
+  if (event === "playerShop:addItem") {
+    const shopUuid = String(data?.shopUuid || "");
+    const shop = myShops().find((candidate) => candidate.uuid === shopUuid);
+    if (!shop) return shopFail(socket, "playerShop:addItem:error", "店铺不存在或不属于你");
+    const resourceId = typeof data?.resourceId === "string" ? data.resourceId.trim() : "";
+    const reserve = Math.max(0, Math.floor(Number(data?.inventoryRemainingCount) || 0));
+    const unitPrice = Math.floor(Number(data?.unitPrice));
+    if (!resourceId) return shopFail(socket, "playerShop:addItem:error", "请选择物品");
+    if (!Number.isSafeInteger(reserve)) return shopFail(socket, "playerShop:addItem:error", "保留数量必须为非负整数");
+    if (!Number.isSafeInteger(unitPrice) || unitPrice < 1) return shopFail(socket, "playerShop:addItem:error", "单价必须为大于等于 1 的整数");
+    if ((shop.items || []).length >= shopCapacity(shop)) return shopFail(socket, "playerShop:addItem:error", `该店铺最多挂售 ${shopCapacity(shop)} 件物品`);
+    if (getAssetCount(player, resourceId) <= reserve) return shopFail(socket, "playerShop:addItem:error", "当前库存不高于保留数量，没有可售物品");
+    const item = {
+      uuid: crypto.randomUUID(),
+      resourceId,
+      count: getAssetCount(player, resourceId),
+      soldCount: 0,
+      remaining: Math.max(0, getAssetCount(player, resourceId) - reserve),
+      inventoryRemainingCount: reserve,
+      unitPrice,
+      comment: typeof data?.comment === "string" ? data.comment.slice(0, 200) : "",
+      perPlayerDailyLimit: Math.max(0, Math.floor(Number(data?.perPlayerDailyLimit) || 0)),
+      perPlayerLimitIntervalDays: Math.max(1, Math.min(30, Math.floor(Number(data?.perPlayerLimitIntervalDays) || 1))),
+      createdAt: new Date().toISOString()
+    };
+    shop.items.push(item);
+    schedulePersist();
+    emitGameEvent(socket, "playerShop:addItem:success", { item: shopItemView({ ...item, sellerUuid: shop.owner }, player), shop: shopView(shop) });
+    return true;
+  }
+  if (event === "playerShop:removeItem") {
+    const itemUuid = String(data?.itemUuid || "");
+    const shop = myShops().find((candidate) => (candidate.items || []).some((item) => item.uuid === itemUuid));
+    if (!shop) return shopFail(socket, "playerShop:removeItem:error", "物品不存在");
+    const item = shop.items.find((candidate) => candidate.uuid === itemUuid);
+    shop.items = shop.items.filter((candidate) => candidate.uuid !== itemUuid);
+    schedulePersist();
+    emitGameEvent(socket, "playerShop:removeItem:success", { itemUuid });
+    return true;
+  }
+  if (event === "playerShop:updateItem") {
+    const itemUuid = String(data?.itemUuid || "");
+    const shop = myShops().find((candidate) => (candidate.items || []).some((item) => item.uuid === itemUuid));
+    if (!shop) return shopFail(socket, "playerShop:updateItem:error", "物品不存在");
+    const item = shop.items.find((candidate) => candidate.uuid === itemUuid);
+    const unitPrice = Math.floor(Number(data?.unitPrice));
+    if (!Number.isSafeInteger(unitPrice) || unitPrice < 1) return shopFail(socket, "playerShop:updateItem:error", "单价必须为大于等于 1 的整数");
+    item.unitPrice = unitPrice;
+    item.comment = typeof data?.comment === "string" ? data.comment.slice(0, 200) : item.comment;
+    const perPlayerDailyLimit = Math.max(0, Math.floor(Number(data?.perPlayerDailyLimit) || 0));
+    item.perPlayerDailyLimit = perPlayerDailyLimit;
+    item.perPlayerLimitIntervalDays = perPlayerDailyLimit > 0
+      ? Math.max(1, Math.min(30, Math.floor(Number(data?.perPlayerLimitIntervalDays) || 1)))
+      : 1;
+    schedulePersist();
+    emitGameEvent(socket, "playerShop:updateItem:success", { item: shopItemView({ ...item, sellerUuid: shop.owner }, player) });
+    return true;
+  }
+  if (event === "playerShop:update") {
+    const shop = myShops().find((candidate) => candidate.uuid === String(data?.shopUuid || ""));
+    if (!shop) return shopFail(socket, "playerShop:update:error", "店铺不存在");
+    if (typeof data?.name === "string" && data.name.trim()) shop.name = data.name.trim();
+    if (typeof data?.description === "string") shop.description = data.description.slice(0, 200);
+    if (data?.visibility === "PRIVATE" || data?.visibility === "PUBLIC") shop.visibility = data.visibility;
+    schedulePersist();
+    emitGameEvent(socket, "playerShop:update:success", { shop: shopView(shop) });
+    return true;
+  }
+  if (event === "playerShop:renew") {
+    const shop = myShops().find((candidate) => candidate.uuid === String(data?.shopUuid || ""));
+    if (!shop) return shopFail(socket, "playerShop:renew:error", "店铺不存在");
+    const days = Math.max(1, Math.min(30, Math.floor(Number(data?.days) || PLAYER_SHOP_DAYS)));
+    const base = Math.max(Date.now(), Date.parse(shop.expiresAt));
+    shop.expiresAt = new Date(base + days * 86400000).toISOString();
+    schedulePersist();
+    emitGameEvent(socket, "playerShop:renew:success", { shop: shopView(shop) });
+    return true;
+  }
+  if (event === "playerShop:buy") {
+    const itemUuid = String(data?.itemUuid || "");
+    const shop = shopState.shops.find((candidate) => (candidate.items || []).some((item) => item.uuid === itemUuid));
+    if (!shop || (shop.visibility || "PUBLIC") !== "PUBLIC" || Date.parse(shop.expiresAt) <= Date.now()) return shopFail(socket, "playerShop:buy:error", "物品不存在或已下架");
+    if (shop.owner === player.uuid) return shopFail(socket, "playerShop:buy:error", "不能购买自己店铺的物品");
+    const item = shop.items.find((candidate) => candidate.uuid === itemUuid);
+    const seller = players.get(shop.owner);
+    if (!seller) return shopFail(socket, "playerShop:buy:error", "店主不存在");
+    const availableCount = shopItemView(item, seller).availableCount;
+    const count = Math.floor(Number(data?.count) || 1);
+    if (!Number.isSafeInteger(count) || count < 1) return shopFail(socket, "playerShop:buy:error", "购买数量不正确");
+    if (availableCount < count) return shopFail(socket, "playerShop:buy:error", "库存不足");
+    if (item.perPlayerDailyLimit > 0) {
+      const intervalDays = Math.max(1, Math.min(30, Math.floor(Number(item.perPlayerLimitIntervalDays) || 1)));
+      const cutoff = Date.now() - intervalDays * 86400000;
+      const purchased = shopState.purchases
+        .filter((entry) => entry.buyerUuid === player.uuid && entry.itemUuid === itemUuid && Date.parse(entry.createdAt) >= cutoff)
+        .reduce((sum, entry) => sum + Math.max(0, Math.floor(Number(entry.count) || 0)), 0);
+      if (purchased + count > item.perPlayerDailyLimit) return shopFail(socket, "playerShop:buy:error", `每 ${intervalDays} 天最多购买 ${item.perPlayerDailyLimit} 件`);
+    }
+    const total = item.unitPrice * count;
+    if (!Number.isSafeInteger(total) || total < 1) return shopFail(socket, "playerShop:buy:error", "商品价格不正确");
+    if (getAssetCount(player, PLAYER_SHOP_CURRENCY_ID) < total) return shopFail(socket, "playerShop:buy:error", "猫爪币不足");
+    removeAsset(player, PLAYER_SHOP_CURRENCY_ID, total);
+    removeAsset(seller, item.resourceId, count);
+    addAsset(player, item.resourceId, count);
+    addAsset(seller, PLAYER_SHOP_CURRENCY_ID, total);
+    item.soldCount = Math.max(0, Math.floor(Number(item.soldCount) || 0)) + count;
+    item.remaining = Math.max(0, getAssetCount(seller, item.resourceId) - Math.max(0, Math.floor(Number(item.inventoryRemainingCount) || 0)));
+    shopState.purchases.push({
+      uuid: crypto.randomUUID(),
+      itemUuid,
+      buyerUuid: player.uuid,
+      sellerUuid: shop.owner,
+      shopUuid: shop.uuid,
+      resourceId: item.resourceId,
+      count,
+      unitPrice: item.unitPrice,
+      total,
+      createdAt: new Date().toISOString()
+    });
+    if (shopState.purchases.length > 2000) shopState.purchases.splice(0, shopState.purchases.length - 2000);
+    schedulePersist();
+    emitGameEvent(socket, "playerShop:buy:success", { itemUuid, buyCount: count, count, totalCost: total, total });
+    return true;
+  }
+  if (event === "playerShop:purchaseList") {
+    const itemUuid = String(data?.itemUuid || "");
+    const ownedItem = itemUuid && myShops().some((shop) => (shop.items || []).some((item) => item.uuid === itemUuid));
+    const page = Math.max(1, Math.floor(Number(data?.page) || 1));
+    const pageSize = Math.max(1, Math.min(100, Math.floor(Number(data?.pageSize) || 10)));
+    const all = (ownedItem
+      ? shopState.purchases.filter((entry) => entry.itemUuid === itemUuid)
+      : shopState.purchases.filter((entry) => entry.buyerUuid === player.uuid))
+      .slice().reverse()
+      .map((entry) => ({ ...entry, currencyResourceId: PLAYER_SHOP_CURRENCY_ID }));
+    emitGameEvent(socket, "playerShop:purchaseList:success", {
+      records: all.slice((page - 1) * pageSize, page * pageSize),
+      items: all.slice((page - 1) * pageSize, page * pageSize),
+      total: all.length,
+      page,
+      pageSize
+    });
+    return true;
+  }
+  if (event === "playerShop:pin") {
+    pruneShopPins();
+    const shopUuid = String(data?.shopUuid || "");
+    const shop = myShops().find((candidate) => candidate.uuid === shopUuid);
+    if (!shop) return shopFail(socket, "playerShop:pin:error", "店铺不存在或不属于你");
+    if ((shop.visibility || "PUBLIC") !== "PUBLIC" || Date.parse(shop.expiresAt) <= Date.now()) return shopFail(socket, "playerShop:pin:error", "只有营业中的公开店铺可以置顶");
+    if (shopState.pins[shopUuid]) return shopFail(socket, "playerShop:pin:error", "店铺已在置顶中");
+    const cooldown = Number(shopState.pinCooldowns[player.uuid]) || 0;
+    if (cooldown > Date.now()) return shopFail(socket, "playerShop:pin:error", "置顶服务仍在冷却中");
+    const current = pinnedShopList();
+    if (current.length >= PLAYER_SHOP_MAX_GLOBAL_PINS) return shopFail(socket, "playerShop:pin:error", "当前置顶名额已满");
+    if (getAssetCount(player, "playerShopPinnedLicense") < 1) return shopFail(socket, "playerShop:pin:error", "缺少店铺置顶许可");
+    removeAsset(player, "playerShopPinnedLicense", 1);
+    const expiresAt = Date.now() + PLAYER_SHOP_PIN_MS;
+    shopState.pins[shopUuid] = expiresAt;
+    shopState.pinCooldowns[player.uuid] = Date.now() + PLAYER_SHOP_PIN_COOLDOWN_MS;
+    schedulePersist();
+    emitGameEvent(socket, "playerShop:pin:success", { shopUuid, expiresAt: new Date(expiresAt).toISOString(), pinned: pinnedShopList() });
+    return true;
+  }
+  if (event === "playerShop:unpin") {
+    const shopUuid = String(data?.shopUuid || "");
+    const shop = myShops().find((candidate) => candidate.uuid === shopUuid);
+    if (!shop) return shopFail(socket, "playerShop:unpin:error", "店铺不存在或不属于你");
+    if (!shopState.pins[shopUuid]) return shopFail(socket, "playerShop:unpin:error", "店铺没有置顶");
+    delete shopState.pins[shopUuid];
+    schedulePersist();
+    emitGameEvent(socket, "playerShop:unpin:success", { shopUuid, pinned: pinnedShopList() });
+    return true;
+  }
+  if (event === "playerShop:expandItemSlots") {
+    const shop = myShops()[0];
+    if (!shop) return shopFail(socket, "playerShop:expandItemSlots:error", "请先开设店铺");
+    const current = Math.max(0, Math.min(PLAYER_SHOP_MAX_EXTRA_ITEMS, Math.floor(Number(shop.extraItemSlots) || 0)));
+    if (current >= PLAYER_SHOP_MAX_EXTRA_ITEMS) return shopFail(socket, "playerShop:expandItemSlots:error", "店铺栏位已扩展至上限");
+    const schemeId = String(data?.schemeId || "");
+    if (!PLAYER_SHOP_SCHEME_IDS.includes(schemeId)) return shopFail(socket, "playerShop:expandItemSlots:error", "扩展方案不正确");
+    shop.schemeUsage ||= { default: 0, fast: 0 };
+    const schemeUseCount = Math.max(0, Math.floor(Number(shop.schemeUsage[schemeId]) || 0));
+    if (schemeId === "default" && schemeUseCount >= PLAYER_SHOP_DEFAULT_SCHEME_MAX_USES) return shopFail(socket, "playerShop:expandItemSlots:error", "方案A的可用次数已用尽");
+    const costs = schemeId === "fast"
+      ? [{ id: "playerShopCapacityUpgrade", count: 1 }]
+      : [
+          { id: "gold", count: 10000000 + 10000000 * schemeUseCount },
+          { id: "catPawCoin", count: 50 + 25 * schemeUseCount },
+          { id: "catPawStamp", count: 50 + 25 * schemeUseCount },
+          { id: "genesisEssence", count: 5 + schemeUseCount }
+        ];
+    if (costs.some((cost) => getAssetCount(player, cost.id) < cost.count)) return shopFail(socket, "playerShop:expandItemSlots:error", "扩展所需资源不足");
+    for (const cost of costs) removeAsset(player, cost.id, cost.count);
+    shop.extraItemSlots = current + 1;
+    shop.schemeUsage[schemeId] = schemeUseCount + 1;
+    const atCapacity = shop.extraItemSlots >= PLAYER_SHOP_MAX_EXTRA_ITEMS;
+    const allowedSchemes = atCapacity
+      ? []
+      : [shop.schemeUsage.default < PLAYER_SHOP_DEFAULT_SCHEME_MAX_USES ? "default" : null, "fast"].filter(Boolean);
+    schedulePersist();
+    emitGameEvent(socket, "playerShop:expandItemSlots:success", {
+      maxSlots: shopCapacity(shop),
+      maxItemsPerShop: shopCapacity(shop),
+      extra: shop.extraItemSlots,
+      extraSeller: shop.extraItemSlots,
+      allowedSchemes,
+      schemeUsage: { default: shop.schemeUsage.default, fast: shop.schemeUsage.fast },
+      schemeRemaining: {
+        default: Math.max(0, PLAYER_SHOP_DEFAULT_SCHEME_MAX_USES - shop.schemeUsage.default),
+        fast: atCapacity ? 0 : "infinity"
+      }
+    });
+    return true;
+  }
+  return false;
+}
+
+// 交互式垂钓尚未实现完整的鱼获、打窝、出售与持久化事务。
+// 在完整模块交付前，所有前端会发出的垂钓请求都明确失败，不能用临时在线状态伪装成功。
+const UNSUPPORTED_FISHING_EVENTS = new Set([
+  "fishing:start",
+  "fishing:nearby:get",
+  "fishing:myActive:get",
+  "fishing:end",
+  "fishing:catches:get",
+  "fishing:sessions:get",
+  "fishing:baitAreas:get",
+  "fishing:myBaitAreas:get",
+  "fishing:myCatches:get",
+  "fishing:leaderboard:get",
+  "fishing:shout:send",
+  "fishing:sell",
+  "fishing:sell:batch"
+]);
+
+function handleFishingEvent(socket, event) {
+  if (!UNSUPPORTED_FISHING_EVENTS.has(event)) return false;
+  return emitUnsupportedFeature(socket, event, "interactiveFishing", "fail", "交互式垂钓尚未实现");
+}
+
+function outfitTypeOf(value) {
+  return value === "battle" || value === "work" ? value : null;
+}
+
+const OUTFIT_ACTION_LIMIT = 100;
+
+function validateOutfitActionIds(raw) {
+  if (!Array.isArray(raw)) return { actionIdList: [] };
+  const result = [];
+  const seen = new Set();
+  for (const value of raw) {
+    const actionId = typeof value === "string" ? value.trim() : "";
+    if (!actionId || !taskActionExists(actionId)) return { error: `配装包含无效动作：${actionId || "(空)"}` };
+    if (seen.has(actionId)) continue;
+    seen.add(actionId);
+    result.push(actionId);
+    if (result.length > OUTFIT_ACTION_LIMIT) return { error: `配装动作最多 ${OUTFIT_ACTION_LIMIT} 项` };
+  }
+  return { actionIdList: result };
+}
+
+function validateOutfitEquipment(type, rawEquipment) {
+  if (!rawEquipment || typeof rawEquipment !== "object" || Array.isArray(rawEquipment)) return { error: "配装数据无效" };
+  const equipment = {};
+  for (const [slot, value] of Object.entries(rawEquipment)) {
+    const resourceId = typeof value === "string" ? value.trim() : "";
+    if (!EQUIPMENT_SLOT_IDS.includes(slot)) return { error: `未知装备槽：${slot}` };
+    const item = resourceCatalog[resourceId];
+    if (!item?.equipPart) return { error: `配装包含无效装备：${resourceId || "(空)"}` };
+    const equipmentTypes = Array.isArray(item.equipmentType) ? item.equipmentType : [];
+    if (!equipmentTypes.includes(type)) return { error: `装备 ${resourceId} 不能放入${type === "battle" ? "战斗" : "生活"}配装` };
+    if (resolveEquipmentSlot(item, equipment, slot) !== slot) return { error: `装备 ${resourceId} 与槽位 ${slot} 不匹配` };
+    equipment[slot] = resourceId;
+  }
+  return { equipment };
+}
+
+function applyOutfitEquipment(player, type, desiredEquipment) {
+  const key = type === "battle" ? "battleEquipment" : "workEquipment";
+  const current = player[key] && typeof player[key] === "object" && !Array.isArray(player[key]) ? player[key] : {};
+  const currentCounts = new Map();
+  const desiredCounts = new Map();
+  for (const resourceId of Object.values(current)) currentCounts.set(resourceId, (currentCounts.get(resourceId) || 0) + 1);
+  for (const resourceId of Object.values(desiredEquipment)) desiredCounts.set(resourceId, (desiredCounts.get(resourceId) || 0) + 1);
+  for (const [resourceId, desiredCount] of desiredCounts) {
+    const need = Math.max(0, desiredCount - (currentCounts.get(resourceId) || 0));
+    if (getAssetCount(player, resourceId) < need) return { error: `背包中缺少装备：${resourceId}` };
+  }
+  for (const [resourceId, currentCount] of currentCounts) {
+    const release = Math.max(0, currentCount - (desiredCounts.get(resourceId) || 0));
+    if (release) addAsset(player, resourceId, release);
+  }
+  for (const [resourceId, desiredCount] of desiredCounts) {
+    const need = Math.max(0, desiredCount - (currentCounts.get(resourceId) || 0));
+    if (need && !removeAsset(player, resourceId, need)) return { error: `背包中缺少装备：${resourceId}` };
+  }
+  player[key] = structuredClone(desiredEquipment);
+  return { equipment: player[key] };
+}
+
+function applyOutfitActions(player, actionIdList) {
+  const validated = validateOutfitActionIds(actionIdList);
+  if (validated.error || !validated.actionIdList.length) return false;
+  const now = Date.now();
+  player.taskQueue = validated.actionIdList.map((actionId, index) => makeTask({ actionId, repeatCount: 1, createTime: now + index }, player));
+  stopTaskRunner(player);
+  return true;
+}
+
+function handleOutfitEvent(socket, event, data) {
+  const player = socket.player;
+  if (!player) return true;
+  player.outfits ||= [];
+  const fail = (name, message) => {
+    emitGameEvent(socket, name, { message });
+    return true;
+  };
+  const emitAll = () => emitGameEvent(socket, "outfit:list:success", { outfits: player.outfits });
+  if (event === "outfit:getAll") {
+    emitAll();
+    return true;
+  }
+  if (event === "outfit:create") {
+    const name = typeof data?.name === "string" ? data.name.trim() : "";
+    if (!name) return fail("outfit:create:fail", "请填写套装名称");
+    if ([...name].length > 12) return fail("outfit:create:fail", "套装名称最多12个字");
+    if (player.outfits.length >= 20) return fail("outfit:create:fail", "最多保存 20 套配装");
+    const type = outfitTypeOf(data?.type);
+    if (!type) return fail("outfit:create:fail", "装备栏类型无效");
+    const sourceEquipment = (type === "battle" ? player.battleEquipment : player.workEquipment) || {};
+    const validated = validateOutfitEquipment(type, sourceEquipment);
+    if (validated.error) return fail("outfit:create:fail", validated.error);
+    const actions = validateOutfitActionIds(data?.actionIdList);
+    if (actions.error) return fail("outfit:create:fail", actions.error);
+    const now = new Date().toISOString();
+    const outfit = {
+      uuid: crypto.randomUUID(),
+      name,
+      type,
+      // 创建时按当前已穿装备生成快照，避免空套装被应用后把角色扒光
+      equipment: structuredClone(validated.equipment),
+      actionIdList: actions.actionIdList,
+      createdAt: now,
+      updatedAt: now
+    };
+    player.outfits.push(outfit);
+    schedulePersist();
+    emitGameEvent(socket, "outfit:create:success", { outfit });
+    emitAll();
+    return true;
+  }
+  if (event === "outfit:update") {
+    const outfit = player.outfits.find((candidate) => candidate.uuid === String(data?.outfitUuid || ""));
+    if (!outfit) return fail("outfit:update:fail", "配装不存在");
+    const type = outfitTypeOf(outfit.type);
+    if (!type) return fail("outfit:update:fail", "装备栏类型无效");
+    const patch = data?.equipment && typeof data.equipment === "object" && !Array.isArray(data.equipment) ? data.equipment : {};
+    const sourceEquipment = (type === "battle" ? player.battleEquipment : player.workEquipment) || {};
+    const updatedEquipment = validateOutfitEquipment(type, sourceEquipment);
+    if (updatedEquipment.error) return fail("outfit:update:fail", updatedEquipment.error);
+    let updatedActions;
+    if (Array.isArray(data?.actionIdList)) {
+      updatedActions = validateOutfitActionIds(data.actionIdList);
+      if (updatedActions.error) return fail("outfit:update:fail", updatedActions.error);
+    }
+    if (typeof patch.name === "string" && patch.name.trim()) {
+      if ([...patch.name.trim()].length > 12) return fail("outfit:update:fail", "套装名称最多12个字");
+      outfit.name = patch.name.trim();
+    }
+    outfit.equipment = structuredClone(updatedEquipment.equipment);
+    if (updatedActions) outfit.actionIdList = updatedActions.actionIdList;
+    outfit.updatedAt = new Date().toISOString();
+    schedulePersist();
+    emitGameEvent(socket, "outfit:update:success", { outfit });
+    emitAll();
+    return true;
+  }
+  if (event === "outfit:delete") {
+    const uuid = String(data?.outfitUuid || "");
+    const before = player.outfits.length;
+    player.outfits = player.outfits.filter((candidate) => candidate.uuid !== uuid);
+    if (player.outfits.length === before) return fail("outfit:delete:fail", "配装不存在");
+    schedulePersist();
+    emitGameEvent(socket, "outfit:delete:success", { outfitUuid: uuid });
+    emitAll();
+    return true;
+  }
+  if (event === "outfit:apply") {
+    const outfit = player.outfits.find((candidate) => candidate.uuid === String(data?.outfitUuid || ""));
+    if (!outfit) return fail("outfit:apply:fail", "配装不存在");
+    const type = outfitTypeOf(outfit.type);
+    if (!type) return fail("outfit:apply:fail", "装备栏类型无效");
+    const actionValidation = validateOutfitActionIds(outfit.actionIdList);
+    if (actionValidation.error) return fail("outfit:apply:fail", actionValidation.error);
+    const validated = validateOutfitEquipment(type, outfit.equipment || {});
+    if (validated.error) return fail("outfit:apply:fail", validated.error);
+    if (type === "battle") {
+      const { disabled } = battleSlotState(skillTreeCatalog, player.skillTree || {});
+      const blockedSlot = Object.keys(validated.equipment).find((slot) => disabled.includes(slot));
+      if (blockedSlot) return fail("outfit:apply:fail", `槽位 ${blockedSlot} 尚未解锁或已被专精禁用`);
+    }
+    const applied = applyOutfitEquipment(player, type, validated.equipment);
+    if (applied.error) return fail("outfit:apply:fail", applied.error);
+    const actionsApplied = applyOutfitActions(player, actionValidation.actionIdList);
+    if (type === "work") refreshWorkTaskDurations(player);
+    schedulePersist();
+    emitGameEvent(socket, `character:getEquipment:${type}:success`, applied.equipment);
+    emitGameEvent(socket, "dispatchInventoryInfo", player.inventory);
+    emitGameEvent(socket, "inventoryUpdated", player.inventory);
+    emitGameEvent(socket, "dispatchCharacterStatusInfo", characterInitData(player).status);
+    if (type === "work") emitGameEvent(socket, "characterInitData", { data: characterInitData(player) });
+    if (actionsApplied) {
+      emitGameEvent(socket, "needResetCurrentActionProgress", null);
+      dispatchTaskQueue(socket);
+      startTaskRunner(socket);
+    }
+    emitGameEvent(socket, "outfit:apply:success", {
+      outfitUuid: outfit.uuid,
+      type,
+      equipment: applied.equipment,
+      actionIdList: actionValidation.actionIdList
+    });
+    return true;
+  }
+  return false;
+}
+
+function publicOtherCharacterInfo(player) {
+  const guild = guildForPlayer(player.uuid);
+  const membership = guildMember(guild, player.uuid);
+  const skills = playerSkills(player).map((entry) => ({
+    skillId: entry.skillId,
+    level: entry.level,
+    enabled: entry.enabled,
+    order: entry.order,
+    logic: structuredClone(entry.logic || [])
+  }));
+  const kittiesInfo = (Array.isArray(player.kitty) ? player.kitty : []).map((kitty) => ({
+    kitty: {
+      uuid: kitty?.uuid || kitty?.id || "",
+      name: typeof kitty?.name === "string" ? kitty.name : "小猫咪",
+      avatar: kitty?.avatar || null
+    },
+    currentActionId: typeof kitty?.currentActionId === "string" ? kitty.currentActionId : null
+  }));
+  return {
+    playerInfo: {
+      base: {
+        uuid: player.uuid,
+        name: player.name,
+        avatar: player.avatar,
+        title: player.title ?? null,
+        hName: [],
+        guild: guild?.uuid || null,
+        guildTitle: guild?.titles?.find((title) => title.uuid === membership?.titleUuid)?.title || null,
+        createDate: player.createdAt,
+        lastOnlineDate: null,
+        style: publicStyleView(player),
+        effect: {}
+      },
+      status: statusDetailFor(player),
+      skills
+    },
+    currentActionId: typeof player.taskQueue?.[0]?.actionId === "string" ? player.taskQueue[0].actionId : null,
+    kittiesInfo
+  };
+}
+
 function eventResult(event, player, payload) {
   const data = payload?.data ?? payload ?? {};
-  if (event === "character:getProfile" || event === "character:getInfo") {
-    // 只有本人会走这里，所以带上 option 开关；对外的 publicProfileView 不暴露
-    return { ...publicProfileView(player, player.uuid), option: player.option || {}, resources: player.resources };
+  if (event === "character:getProfile") {
+    const targetUuid = typeof data?.characterUuid === "string" ? data.characterUuid.trim() : "";
+    const target = targetUuid ? players.get(targetUuid) : player;
+    return target ? publicProfileView(target, player.uuid) : undefined;
+  }
+  if (event === "character:getInfo") {
+    const targetUuid = typeof data?.characterUuid === "string" ? data.characterUuid.trim() : "";
+    const target = targetUuid ? players.get(targetUuid) : player;
+    return target ? publicOtherCharacterInfo(target) : undefined;
+  }
+  if (event === "character:getOtherPlayerEquipment" || event === "character:getOtherPlayerWorkEquipment") {
+    const targetUuid = typeof data?.characterUuid === "string" ? data.characterUuid.trim() : "";
+    const target = targetUuid && players.get(targetUuid);
+    if (!target) return undefined;
+    const equipment = event === "character:getOtherPlayerEquipment" ? target.battleEquipment : target.workEquipment;
+    return structuredClone(equipment && typeof equipment === "object" && !Array.isArray(equipment) ? equipment : {});
   }
   if (event === "character:getGameState") return { resources: player.resources, inventory: player.inventory, taskQueue: player.taskQueue };
   if (event === "character:getEquipment") return data.type === "battle" ? player.battleEquipment : player.workEquipment;
   if (event === "character:getSkills") return playerSkills(player);
   if (event === "getTaskQueue") return player.taskQueue;
-  if (event === "kitty:getAll" || event === "kitty:getAllFriend") return player.kitty;
-  if (event === "kitty:getAllTask") return [];
-  if (event === "friend:getList" || event === "guild:getList") return [];
-  if (event === "chat:getPublicChatList" || event.startsWith("chat:get")) return [];
-  if (event === "worldBoss:listAvailable") return [];
-  if (event === "rankingList" || event === "weeklyRankingList") return [];
+  if (event === "kitty:getAll") return player.kitty;
   if (event === "uniqueFlag:all") return { flags: player.uniqueFlag || [] };
-  if (event === "userPersonalization:get") return {};
-  if (event === "homeService:status") return { active: false };
-  return { accepted: true, event, data };
+  // 未知或尚未实现的事件不能伪装成成功：undefined 表示没有通用成功处理器认领。
+  return undefined;
 }
 
 io.use((socket, next) => {
@@ -1705,20 +3887,246 @@ function statusDetailFor(player) {
   const base = getPlayerStatus(player);
   const battleBonus = equipmentEffects(player, "battle").bonus;
   const workBonus = equipmentEffects(player, "work").bonus;
+  const treeBonus = skillTreeStatusBonusFor(player);
   const detail = {};
   for (const key of statusKeys) {
     const entry = base[key];
     const fromEquipment = Number(battleBonus[key]) || 0;
     const fromWorkEquipment = Number(workBonus[key]) || 0;
+    const fromSkillTreeNode = Number(treeBonus[key]) || 0;
     // 和战斗内一致：属性最低 1，装备的负数（铁甲衣 dexterity-2）不能把面板顶成负数
-    const final = Math.max(1, roundOneDecimal(entry.level + fromEquipment + fromWorkEquipment));
+    const final = Math.max(1, roundOneDecimal(entry.level + fromEquipment + fromWorkEquipment + fromSkillTreeNode));
     const row = { level: entry.level, currentExp: entry.currentExp, final };
     // 为 0 的字段不发：前端用 `statusDetail.fromEquipment ? ...` 判断是否渲染该行
     if (fromWorkEquipment) row.fromWorkEquipment = roundOneDecimal(fromWorkEquipment);
     if (fromEquipment) row.fromEquipment = roundOneDecimal(fromEquipment);
+    if (fromSkillTreeNode) row.fromSkillTreeNode = roundOneDecimal(fromSkillTreeNode);
     detail[key] = row;
   }
   return detail;
+}
+
+// ---- 专精（技能树）----
+// 规则（游戏内说明）：每 15 级生活等级给 1 点（交易、强化不计），每 7 级战斗等级给 1 点。
+// 前端只认 summary 里的 nodeLevels / unmetReasons / canAllocate / available 等字段，
+// 加点本身必须由后端校验前置与消耗，否则界面点了也不会落盘。
+const SKILL_TREE_BATTLE_STATUSES = ["battle", "attacking", "defencing", "strength", "dexterity", "intelligence", "stamina"];
+const SKILL_TREE_LIFE_STATUSES = statusKeys.filter(
+  (key) => !SKILL_TREE_BATTLE_STATUSES.includes(key) && key !== "trading" && key !== "enhance"
+);
+
+function skillTreeNode(treeId, nodeId) {
+  return skillTreeCatalog.trees[treeId]?.byId?.[nodeId] || null;
+}
+
+function skillTreeLevels(player, treeId) {
+  if (!player.skillTree || typeof player.skillTree !== "object" || Array.isArray(player.skillTree)) player.skillTree = {};
+  const tree = skillTreeCatalog.trees[treeId];
+  const levels = player.skillTree[treeId];
+  if (!levels || typeof levels !== "object" || Array.isArray(levels)) {
+    player.skillTree[treeId] = {};
+    return player.skillTree[treeId];
+  }
+  if (!tree) return levels;
+  for (const [nodeId, rawLevel] of Object.entries(levels)) {
+    const node = tree.byId[nodeId];
+    const level = Math.max(0, Math.min(node?.maxLevel ?? 0, Math.floor(Number(rawLevel) || 0)));
+    if (!node || level <= 0) delete levels[nodeId];
+    else levels[nodeId] = level;
+  }
+  return levels;
+}
+
+function skillTreeSpent(tree, levels) {
+  let spent = 0;
+  for (const [nodeId, level] of Object.entries(levels)) {
+    const node = tree.byId[nodeId];
+    if (!node) continue;
+    for (let i = 0; i < level; i += 1) spent += nodeCost(node, i);
+  }
+  return spent;
+}
+
+function skillTreePointPool(player, treeId) {
+  const baseLevels = getPlayerStatus(player);
+  const keys = treeId === "battle" ? SKILL_TREE_BATTLE_STATUSES : SKILL_TREE_LIFE_STATUSES;
+  const totalLevels = keys.reduce((sum, key) => sum + (Number(baseLevels[key]?.level) || 0), 0);
+  const perPoint = treeId === "battle" ? 7 : 15;
+  const formulaEarned = Math.floor(totalLevels / perPoint);
+  const bonusEarned = Math.max(0, Math.floor(Number(player.skillTreeBonus?.[treeId]) || 0));
+  return { formulaEarned, bonusEarned, totalEarned: formulaEarned + bonusEarned, totalLevels };
+}
+
+function skillTreeUnmetReasons(treeId, levels, node, nextLevel) {
+  const reasons = [];
+  for (const requirement of nodeRequirements(node, nextLevel)) {
+    if (requirement?.type === "nodeLevel") {
+      const required = Math.max(1, Math.floor(Number(requirement.level) || 1));
+      const current = Math.max(0, Math.floor(Number(levels[requirement.nodeId]) || 0));
+      if (current < required) {
+        const name = skillTreeNode(treeId, requirement.nodeId)?.name || requirement.nodeId;
+        reasons.push(`需要「${name}」达到 ${required} 级（当前 ${current} 级）`);
+      }
+    } else if (requirement?.type === "notWith") {
+      const current = Math.max(0, Math.floor(Number(levels[requirement.nodeId]) || 0));
+      if (current > 0) {
+        const name = skillTreeNode(treeId, requirement.nodeId)?.name || requirement.nodeId;
+        reasons.push(`与「${name}」互斥`);
+      }
+    }
+  }
+  return reasons;
+}
+
+function skillTreeSummary(player, treeId) {
+  const tree = skillTreeCatalog.trees[treeId];
+  if (!tree) return null;
+  const levels = skillTreeLevels(player, treeId);
+  const pool = skillTreePointPool(player, treeId);
+  const effectiveSpent = skillTreeSpent(tree, levels);
+  const available = Math.max(0, pool.totalEarned - effectiveSpent);
+  const nodeLevels = {};
+  const unmetReasons = {};
+  const canAllocate = {};
+  for (const node of tree.nodes) {
+    const level = Math.max(0, Math.min(node.maxLevel, Math.floor(Number(levels[node.id]) || 0)));
+    nodeLevels[node.id] = level;
+    if (level >= node.maxLevel) {
+      unmetReasons[node.id] = [];
+      canAllocate[node.id] = false;
+      continue;
+    }
+    const reasons = skillTreeUnmetReasons(treeId, levels, node, level + 1);
+    unmetReasons[node.id] = reasons;
+    canAllocate[node.id] = reasons.length === 0 && available >= nodeCost(node, level);
+  }
+  return {
+    treeId,
+    nodeLevels,
+    unmetReasons,
+    canAllocate,
+    available,
+    effectiveSpent,
+    formulaEarned: pool.formulaEarned,
+    bonusEarned: pool.bonusEarned,
+    totalEarned: pool.totalEarned,
+    totalLevels: pool.totalLevels
+  };
+}
+
+function skillTreeLearned(player) {
+  const learned = [];
+  for (const treeId of Object.keys(skillTreeCatalog.trees)) {
+    const levels = skillTreeLevels(player, treeId);
+    for (const [nodeId, level] of Object.entries(levels)) {
+      if (level > 0) learned.push({ nodeId, treeId, level });
+    }
+  }
+  return learned;
+}
+
+function skillTreeStatusBonusFor(player) {
+  return skillTreeStatusBonus(skillTreeCatalog.trees, player.skillTree || {});
+}
+
+// 「弃臂/弃身/舍辅」这类节点会禁用部位：禁用后该槽位上的装备要直接卸回背包，
+// 否则界面显示已禁用、装备却还挂在身上。
+function sanitizeDisabledBattleEquipment(player) {
+  const { disabled } = battleSlotState(skillTreeCatalog, player.skillTree || {});
+  if (!disabled.length) return [];
+  if (!player.battleEquipment || typeof player.battleEquipment !== "object") return [];
+  const removed = [];
+  for (const slot of disabled) {
+    const resourceId = player.battleEquipment[slot];
+    if (!resourceId) continue;
+    delete player.battleEquipment[slot];
+    addAsset(player, resourceId, 1);
+    removed.push({ slot, resourceId });
+  }
+  if (removed.length) schedulePersist();
+  return removed;
+}
+
+function handleSkillTreeEvent(socket, event, data) {
+  const player = socket.player;
+  if (event === "skillTree:summary") {
+    const treeId = String(data?.treeId || "");
+    const summary = skillTreeSummary(player, treeId);
+    if (!summary) {
+      emitGameEvent(socket, "skillTree:summary:fail", { treeId, msg: "技能树不存在" });
+      return true;
+    }
+    emitGameEvent(socket, "skillTree:summary:success", { treeId, summary });
+    return true;
+  }
+  if (event === "skillTree:learned") {
+    emitGameEvent(socket, "skillTree:learned:success", { learned: skillTreeLearned(player) });
+    return true;
+  }
+  if (event === "skillTree:allocate") {
+    const treeId = String(data?.treeId || "");
+    const nodeId = String(data?.nodeId || "");
+    const tree = skillTreeCatalog.trees[treeId];
+    const node = tree?.byId?.[nodeId];
+    if (!tree || !node) {
+      emitGameEvent(socket, "skillTree:allocate:fail", { treeId, msg: "节点不存在" });
+      return true;
+    }
+    const levels = skillTreeLevels(player, treeId);
+    const level = Math.max(0, Math.floor(Number(levels[nodeId]) || 0));
+    if (level >= node.maxLevel) {
+      emitGameEvent(socket, "skillTree:allocate:fail", { treeId, msg: "该节点已达到最高等级" });
+      return true;
+    }
+    const summary = skillTreeSummary(player, treeId);
+    const reasons = summary.unmetReasons[nodeId] || [];
+    if (reasons.length) {
+      emitGameEvent(socket, "skillTree:allocate:fail", { treeId, msg: reasons[0] });
+      return true;
+    }
+    const cost = nodeCost(node, level);
+    if (summary.available < cost) {
+      emitGameEvent(socket, "skillTree:allocate:fail", {
+        treeId,
+        msg: `专精点不足（需要 ${cost}，可用 ${summary.available}）`
+      });
+      return true;
+    }
+    levels[nodeId] = level + 1;
+    schedulePersist();
+    const removed = sanitizeDisabledBattleEquipment(player);
+    emitGameEvent(socket, "skillTree:summary:success", { treeId, summary: skillTreeSummary(player, treeId) });
+    // 专精会解锁 / 禁用战斗装备槽，装备与属性面板都要跟着刷新
+    if (removed.length) {
+      emitGameEvent(socket, "character:getEquipment:battle:success", player.battleEquipment);
+      emitGameEvent(socket, "dispatchInventoryInfo", player.inventory);
+      emitGameEvent(socket, "inventoryUpdated", player.inventory);
+    }
+    emitGameEvent(socket, "skillTree:learned:success", { learned: skillTreeLearned(player) });
+    emitGameEvent(socket, "dispatchCharacterStatusInfo", characterInitData(player).status);
+    return true;
+  }
+  if (event === "skillTree:reset") {
+    const treeId = String(data?.treeId || "");
+    if (!skillTreeCatalog.trees[treeId]) {
+      emitGameEvent(socket, "skillTree:reset:fail", { treeId, msg: "技能树不存在" });
+      return true;
+    }
+    player.skillTree = player.skillTree || {};
+    player.skillTree[treeId] = {};
+    schedulePersist();
+    const removed = sanitizeDisabledBattleEquipment(player);
+    emitGameEvent(socket, "skillTree:reset:success", { treeId, summary: skillTreeSummary(player, treeId) });
+    if (removed.length) {
+      emitGameEvent(socket, "character:getEquipment:battle:success", player.battleEquipment);
+      emitGameEvent(socket, "dispatchInventoryInfo", player.inventory);
+      emitGameEvent(socket, "inventoryUpdated", player.inventory);
+    }
+    emitGameEvent(socket, "skillTree:learned:success", { learned: skillTreeLearned(player) });
+    emitGameEvent(socket, "dispatchCharacterStatusInfo", characterInitData(player).status);
+    return true;
+  }
+  return false;
 }
 
 // ---- 战斗技能配置（技能页）----
@@ -2162,28 +4570,51 @@ function characterInitData(player) {
     battleEquipment: player.battleEquipment || {},
     // 技能页的 characterBattleSkill 是数组（见 playerSkills 的注释），初始化时整包下发
     skills: playerSkills(player),
+    // 已点出的专精节点：前端用它解锁/禁用战斗装备槽（右手2、弃臂聚势等）
+    skillNodes: skillTreeLearned(player),
     // 前端只判断 building[type].status === "BUILT"（其他状态位是公共建筑 villageBuilding 用的另一套）
     building: player.building || {},
-    kittyFurniture: {},
+    kittyFurniture: Array.isArray(player.kittyFurniture) ? player.kittyFurniture : [],
     // 属性面板要的是「基础等级 + 装备加成」明细，不是裸 status（见 statusDetailFor）
     status: statusDetailFor(player),
     guild: {},
-    userStyle: { currentAvatarBorder: null },
+    userStyle: publicStyleView(player),
     // 前端以数组消费：FarmingPlotCard 用 .some(e => e.type === "kittyHomeServiceCenter" && e.level >= 2)
     // 判断是否显示「补种」开关，5430 处用 .find(e => e.type === "catVillageMonument") 算经验加成。
     // 下发 {} 会抛 TypeError 并被 Vue 的 errorHandler 吞掉，整张田地卡片渲染成注释节点。
-    villageBuildingInfo: Array.isArray(player.villageBuildingInfo) ? player.villageBuildingInfo : [],
+    villageBuildingInfo: villageBuildingProjection(),
     uniqueFlag: player.uniqueFlag,
-    sponsorPoint: 0,
+    sponsorPoint: player.sponsorPoint && typeof player.sponsorPoint === "object"
+      ? player.sponsorPoint
+      : { current: 0, max: 0 },
     kittyExpedition: {},
     lastOnlineDate: null,
-    skillNodes: [],
     isBeginner: true
   };
 }
 
 function emitGameEvent(socket, event, payload) {
   socket.emit(event, JSON.stringify({ data: payload }));
+}
+
+function unsupportedFeaturePayload(feature, event, message) {
+  const text = message || `功能尚未实现：${feature}`;
+  return {
+    code: "UNSUPPORTED_FEATURE",
+    feature,
+    ...(event ? { event } : {}),
+    message: text,
+    msg: text
+  };
+}
+
+function sendUnsupportedFeature(res, feature, message) {
+  return res.status(501).json(unsupportedFeaturePayload(feature, undefined, message));
+}
+
+function emitUnsupportedFeature(socket, event, feature, suffix = "error", message) {
+  emitGameEvent(socket, `${event}:${suffix}`, unsupportedFeaturePayload(feature, event, message));
+  return true;
 }
 
 function getBattleRoom(roomId) {
@@ -3310,8 +5741,8 @@ function handleBattleRoomEvent(socket, event, data) {
   if (event.startsWith("battle:") && player.battleInfo && room.status === "battling") {
     if (event === "battle:update") return emitSuccess(event, player.battleInfo);
     if (event === "battle:fullInfo") return emitSuccess(event, { battleInfo: player.battleInfo });
-    if (event === "battle:battleInfoDetail") return emitSuccess(event, {});
-    return emitSuccess(event, { accepted: true, roomId: room.uuid, ...data });
+    // 其余 battle:* 输入没有可信的客户端指令语义；交给已知未实现或未知事件错误契约。
+    return false;
   }
   return false;
 }
@@ -3549,14 +5980,45 @@ function applyActionRewards(player, actionId) {
     const minimum = reward.count ?? reward.min ?? 1;
     const maximum = reward.count ?? reward.max ?? minimum;
     const count = Math.max(1, Math.floor(minimum + Math.random() * (maximum - minimum + 1)));
-    const current = Number(player.inventory[reward.resourceId]?.count) || 0;
-    player.inventory[reward.resourceId] = { count: current + count };
+    addAsset(player, reward.resourceId, count);
+    if (reward.resourceId === "gold") recordWeeklyRankingGain(player, "goldEarned", count);
     gained[reward.resourceId] = { count: (gained[reward.resourceId]?.count || 0) + count };
   }
   return gained;
 }
 
+function useCosmeticItem(player, itemId, multiple) {
+  const item = player.inventory?.[itemId];
+  const metadata = resourceCatalog[itemId];
+  const count = Math.max(1, Math.floor(Number(multiple) || 1));
+  const plan = cosmeticUsePlan(metadata);
+  if (!plan.grants.length && !plan.flags.length) return null;
+  if (!item || (Number(item.count) || 0) < count) return { error: "物品数量不足" };
+  if (count !== 1 || Number(metadata?.maxUseEachTime) === 1) {
+    if (count !== 1) return { error: "该物品每次只能使用 1 个" };
+  }
+  const style = normalizeStyleState(player.style, player.uniqueFlag);
+  if (plan.grants.some(({ category, key }) => style.owned[category].includes(key))
+    || plan.flags.some((flag) => hasUniqueFlag(player, flag))) return { error: "该装饰已经解锁" };
+  const newFlags = plan.flags.filter((flag) => !hasUniqueFlag(player, flag));
+  if (normalizeUniqueFlags(player.uniqueFlag).length + newFlags.length > UNIQUE_FLAG_LIMIT) return { error: "特殊标记数量已达上限" };
+  const next = structuredClone(style);
+  for (const grant of plan.grants) {
+    if (next.owned[grant.category].length >= STYLE_OWNED_LIMIT) return { error: "样式数量已达上限" };
+    next.owned[grant.category].push(grant.key);
+  }
+  for (const flag of newFlags) addUniqueFlagSet(player, flag);
+  next.version = style.version + 1;
+  next.updatedAt = nextUpdatedAt(style.updatedAt);
+  player.style = next;
+  item.count = (Number(item.count) || 0) - 1;
+  if (item.count <= 0) delete player.inventory[itemId];
+  return { cosmetic: true, consumed: 1, gained: {} };
+}
+
 function useItem(player, itemId, multiple) {
+  const cosmetic = useCosmeticItem(player, itemId, multiple);
+  if (cosmetic) return cosmetic;
   const count = Math.max(1, Math.floor(Number(multiple) || 1));
   const item = player.inventory[itemId];
   if (!item || (Number(item.count) || 0) < count) return { error: "物品数量不足" };
@@ -3603,12 +6065,22 @@ function equipmentForType(player, rawType) {
   return { type, equipment: player[key] };
 }
 
-// 槽位分配：主槽按 equipPart 直接落位（同槽已占用时把旧装备退回背包）；
-// 饰品（decorate1-9 共享同一候选池）落到第一个空饰品槽，全满则覆盖 equipPart 指定的槽。
-// leftHand2/rightHand2 属于双持解锁槽，当前角色无对应技能节点，暂不自动分配。
-function resolveEquipmentSlot(item, equipment) {
+// 槽位分配：界面从某个明确槽位选择装备时必须落在该目标槽；
+// 未携带目标槽位的旧客户端仍按主槽 / 首个空饰品槽分配。
+function resolveEquipmentSlot(item, equipment, requestedPart) {
   const equipPart = String(item?.equipPart || "");
   if (!EQUIPMENT_EQUIP_PARTS.includes(equipPart)) return null;
+  const target = String(requestedPart || "");
+  if (target) {
+    if (!EQUIPMENT_SLOT_IDS.includes(target)) return null;
+    if (EQUIPMENT_DECORATE_SLOTS.includes(equipPart)) {
+      return EQUIPMENT_DECORATE_SLOTS.includes(target) ? target : null;
+    }
+    if (target === equipPart) return target;
+    if (equipPart === "rightHand" && target === "rightHand2") return target;
+    if (equipPart === "leftHand" && target === "leftHand2") return target;
+    return null;
+  }
   if (!EQUIPMENT_DECORATE_SLOTS.includes(equipPart)) return equipPart;
   return EQUIPMENT_DECORATE_SLOTS.find((slot) => !equipment[slot]) || equipPart;
 }
@@ -3619,15 +6091,20 @@ function affectsActionDetail(item) {
   return (item.onEquip || []).some((effect) => effect?.actionDurationEffect?.length || effect?.resourceRequirementModifyEffect?.length);
 }
 
-function equipItem(player, resourceId, rawType) {
+function equipItem(player, resourceId, rawType, requestedPart) {
   const item = resourceCatalog[resourceId];
   if (!item || !item.equipPart) return { error: "该物品不可装备" };
+  if (rawType !== "battle" && rawType !== "work") return { error: "装备栏类型无效" };
   const { type, equipment } = equipmentForType(player, rawType);
   const equipmentTypes = Array.isArray(item.equipmentType) ? item.equipmentType : [];
   if (!equipmentTypes.includes(type)) return { error: `该物品不能装备到${type === "battle" ? "战斗" : "生活"}装备栏` };
   if (getAssetCount(player, resourceId) < 1) return { error: "背包中没有该装备" };
-  const slot = resolveEquipmentSlot(item, equipment);
-  if (!slot) return { error: "该物品没有可用装备槽位" };
+  const slot = resolveEquipmentSlot(item, equipment, requestedPart);
+  if (!slot) return { error: "该装备无法装备到所选部位" };
+  if (type === "battle") {
+    const { disabled } = battleSlotState(skillTreeCatalog, player.skillTree || {});
+    if (disabled.includes(slot)) return { error: "该部位尚未解锁或已被专精禁用，无法装备" };
+  }
   const previous = equipment[slot];
   if (previous === resourceId) return { error: "该装备已在槽位中" };
   if (!removeAsset(player, resourceId, 1)) return { error: "背包中没有该装备" };
@@ -3793,6 +6270,646 @@ function emitPlayerResources(socket) {
   emitGameEvent(socket, "dispatchInventoryInfo", player.inventory);
   emitGameEvent(socket, "inventoryUpdated", player.inventory);
   emitGameEvent(socket, "character:getGameState:success", { resources: player.resources, inventory: player.inventory, taskQueue: player.taskQueue });
+}
+
+// ── 公共村庄 / 家政服务 ────────────────────────────────────────────────────────
+const VILLAGE_BUILDING_STATUS = new Set(["UNBUILD", "PREPARE", "BUILDING", "NORMAL", "PREPARE_UPGRADE", "UPGRADING"]);
+const VILLAGE_BUILDING_REQUEST_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const VILLAGE_BUILDING_CATALOG = {
+  catVillageMonument: {
+    maxLevel: 2,
+    buildDurationSeconds: 28800,
+    buildCost: {
+      gold: 2275000000, stone: 2500000, shell: 1250000, berry: 1250000, wood: 1250000,
+      fish: 1000000, salmon: 1000000, chickenEgg: 1000000, milk: 1000000,
+      simpleSalad: 750000, fishSoup: 750000, axe: 150000, steel: 150000, catFurCoat: 150000,
+      "axe+5": 50000, catHairball: 500000, catPawStamp: 2500
+    },
+    upgrades: {
+      1: {
+        durationSeconds: 10800,
+        cost: {
+          gold: 2275000000, silverOre: 1250000, shell: 1250000, bamboo: 1250000,
+          dawnBlossom: 250000, catMint: 250000, custardPudding: 250000,
+          fish: 1000000, tuna: 1000000, animalManure: 1000000,
+          glassBottles: 150000, cashmere: 150000, wool: 500000, catPawStamp: 3000
+        }
+      }
+    }
+  },
+  battlePyreAltar: {
+    maxLevel: 1,
+    buildDurationSeconds: 28800,
+    buildCost: {
+      gold: 2125000000, wood: 875000000, lavaHeart: 500,
+      pure_monster_essence_lv1: 50000, pure_monster_essence_lv2: 25000, pure_monster_essence_lv3: 12500
+    },
+    upgrades: {}
+  },
+  kittyHomeServiceCenter: {
+    maxLevel: 2,
+    buildDurationSeconds: 14400,
+    buildCost: { gold: 400000000, stone: 25000000, iron: 2675000, cashmere: 1250000, ironMachinistHammer: 125, ironTongs: 125 },
+    upgrades: {
+      1: {
+        durationSeconds: 7200,
+        cost: {
+          gold: 400000000, stone: 25000000, animalManure: 375000, fertBasic: 375000,
+          dawnBlossom: 100000, windBellHerb: 100000, nutrientEssence: 37500
+        }
+      }
+    }
+  }
+};
+
+function villageBuildingDefault(type) {
+  return {
+    type,
+    level: 0,
+    exp: 0,
+    maxLevel: VILLAGE_BUILDING_CATALOG[type].maxLevel,
+    status: "UNBUILD",
+    phaseId: null,
+    targetLevel: null,
+    fundList: [],
+    startBuildAt: null,
+    endBuildAt: null,
+    startUpgradeAt: null,
+    endUpgradeAt: null,
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
+    extra: null
+  };
+}
+
+function ensureVillageBuildings() {
+  const byType = new Map();
+  for (const raw of Array.isArray(villageState.buildings) ? villageState.buildings : []) {
+    const type = String(raw?.type || "");
+    if (!VILLAGE_BUILDING_CATALOG[type] || byType.has(type)) continue;
+    const base = villageBuildingDefault(type);
+    const status = VILLAGE_BUILDING_STATUS.has(raw.status) ? raw.status : base.status;
+    byType.set(type, {
+      ...base,
+      ...raw,
+      type,
+      maxLevel: base.maxLevel,
+      level: Math.max(0, Math.min(base.maxLevel, Math.floor(Number(raw.level) || 0))),
+      status,
+      fundList: Array.isArray(raw.fundList) ? raw.fundList.map((row) => ({ ...row })) : []
+    });
+  }
+  for (const type of Object.keys(VILLAGE_BUILDING_CATALOG)) {
+    if (!byType.has(type)) byType.set(type, villageBuildingDefault(type));
+  }
+  villageState.buildings = [...byType.values()];
+  return villageState.buildings;
+}
+
+function villageBuildingByType(type) {
+  return ensureVillageBuildings().find((entry) => entry.type === type) || null;
+}
+
+function villagePublicBuilding(entry) {
+  if (!entry) return null;
+  const { fundList, ...publicEntry } = entry;
+  return { ...publicEntry };
+}
+
+function villageFundList(entry) {
+  return (Array.isArray(entry?.fundList) ? entry.fundList : []).map((row) => ({
+    materialId: String(row.materialId),
+    required: Math.max(0, Math.floor(Number(row.required) || 0)),
+    collected: Math.max(0, Math.floor(Number(row.collected) || 0)),
+    status: Number(row.collected) >= Number(row.required) ? "COMPLETED" : "COLLECTING"
+  }));
+}
+
+function villagePhaseRows(cost) {
+  return Object.entries(cost).map(([materialId, required]) => ({ materialId, required, collected: 0, status: "COLLECTING" }));
+}
+
+function nextVillagePhaseId(type, targetLevel) {
+  villageState.phaseSequence = Math.max(0, Math.floor(Number(villageState.phaseSequence) || 0)) + 1;
+  return `${type}:${targetLevel}:${villageState.phaseSequence}:${crypto.randomUUID()}`;
+}
+
+function villageDonationSignature(buildingType, phaseId, info) {
+  return JSON.stringify({ buildingType, phaseId, info: Object.fromEntries(Object.entries(info).sort(([left], [right]) => left.localeCompare(right))) });
+}
+
+// 村庄建筑是全服共享，不属于 player.building（后者是角色自建建筑）。UI 始终消费这一份权威投影。
+function villageBuildingProjection() {
+  return ensureVillageBuildings()
+    .filter((entry) => ["NORMAL", "PREPARE_UPGRADE"].includes(entry.status))
+    .map(villagePublicBuilding);
+}
+
+function villageBuildingLevel(type) {
+  const entry = villageBuildingByType(type);
+  return entry && ["NORMAL", "PREPARE_UPGRADE"].includes(entry.status) ? entry.level : 0;
+}
+
+function homeServiceView(now = Date.now()) {
+  const level = Math.min(2, villageBuildingLevel("kittyHomeServiceCenter"));
+  const service = villageState.homeService;
+  const cycleDays = Math.max(1, Math.floor(Number(service.cycleDays) || HOME_SERVICE_CYCLE_DAYS));
+  // 一期开始筹款后锁定费用，避免筹到一半升级使目标突然翻倍。
+  let fundingLevel = Math.max(0, Math.floor(Number(service.fundingLevel) || 0));
+  let feeGold = Math.max(0, Math.floor(Number(service.fundingFeeGold) || 0));
+  if (level < 1) {
+    fundingLevel = 0;
+    feeGold = 0;
+  } else if (feeGold <= 0 || fundingLevel <= 0) {
+    fundingLevel = level;
+    feeGold = 200000 * fundingLevel;
+  }
+  service.fundingLevel = fundingLevel;
+  service.fundingFeeGold = feeGold;
+  service.cycleDays = cycleDays;
+  service.fundsGold = Math.min(feeGold, Math.max(0, Math.floor(Number(service.fundsGold) || 0)));
+  const paidUntilMs = Date.parse(service.paidUntil || "");
+  const paidUntil = Number.isFinite(paidUntilMs) ? new Date(paidUntilMs).toISOString() : null;
+  return {
+    level,
+    active: level >= 1 && Number.isFinite(paidUntilMs) && paidUntilMs > now,
+    paidUntil,
+    cycleDays,
+    fee: { gold: feeGold },
+    funds: { gold: service.fundsGold },
+    needed: { gold: Math.max(0, feeGold - service.fundsGold) }
+  };
+}
+
+function homeServiceCan(requiredLevel, now = Date.now()) {
+  const view = homeServiceView(now);
+  return view.active && view.level >= requiredLevel;
+}
+
+function broadcastHomeServiceStatus(view = homeServiceView()) {
+  for (const connected of io.sockets.sockets.values()) {
+    if (connected.player) emitGameEvent(connected, "homeService:status:success", view);
+  }
+}
+
+function commitVillageTransaction() {
+  if (persistTimer) {
+    clearTimeout(persistTimer);
+    persistTimer = null;
+  }
+  const transactionSnapshot = {
+    status: "prepared",
+    preparedAt: new Date().toISOString(),
+    players: [...players.values()].map(playerPersistenceView),
+    village: villagePersistenceView()
+  };
+  fs.mkdirSync(path.dirname(homeServiceWalFile), { recursive: true });
+  writeJsonAtomic(homeServiceWalFile, transactionSnapshot);
+  try {
+    flushPersistedState();
+    fs.rmSync(homeServiceWalFile, { force: true });
+  } catch (commitError) {
+    try {
+      replayPreparedVillageTransaction(transactionSnapshot);
+    } catch (recoveryError) {
+      const fatal = new AggregateError([commitError, recoveryError], "village transaction recovery failed");
+      console.error("[village] fatal transaction recovery failure", fatal);
+      setImmediate(() => process.exit(1));
+      throw fatal;
+    }
+  }
+  return transactionSnapshot;
+}
+
+function handleHomeServiceEvent(socket, event, data) {
+  const player = socket.player;
+  if (!player) return true;
+  if (event === "homeService:status") {
+    emitGameEvent(socket, "homeService:status:success", homeServiceView());
+    return true;
+  }
+  if (event !== "homeService:donate") return false;
+
+  const requestId = typeof data?.requestId === "string" ? data.requestId.trim() : "";
+  const normalizedRequestId = requestId.toLowerCase();
+  const count = Number(data?.count);
+  const fail = (message, id = requestId) => {
+    emitGameEvent(socket, "homeService:donate:error", { requestId: id, message });
+    return true;
+  };
+  if (!HOME_SERVICE_REQUEST_ID_PATTERN.test(requestId)) return fail("捐助请求编号不合法");
+  if (!Number.isSafeInteger(count) || count < 1) return fail("捐助金币必须是正整数");
+
+  const donationKey = `${player.uuid}:${normalizedRequestId}`;
+  const previous = villageState.donations[donationKey];
+  if (previous) {
+    if (previous.count !== count) return fail("requestId 已用于另一笔捐助");
+    // ACK 丢失后的重试必须重放同一终态，绝不能再扣金币。
+    emitGameEvent(socket, "homeService:donate:success", previous.response);
+    return true;
+  }
+
+  const beforeView = homeServiceView();
+  if (beforeView.level < 1) return fail("家政服务中心尚未建成");
+  if (beforeView.needed.gold < 1) return fail("本期维护费已筹满，请刷新状态");
+  if (count > beforeView.needed.gold) return fail("捐助金额超过本期剩余维护费");
+  if (getAssetCount(player, "gold") < count) return fail("金币不足");
+
+  const serviceBefore = structuredClone(villageState.homeService);
+  const donationsBefore = structuredClone(villageState.donations);
+  const goldBefore = getAssetCount(player, "gold");
+  let transactionCommitted = false;
+  try {
+    if (!removeAsset(player, "gold", count)) return fail("金币不足");
+    villageState.homeService.fundsGold += count;
+    if (villageState.homeService.fundsGold === beforeView.fee.gold) {
+      const paidUntilMs = Date.parse(villageState.homeService.paidUntil || "");
+      const base = Number.isFinite(paidUntilMs) && paidUntilMs > Date.now() ? paidUntilMs : Date.now();
+      villageState.homeService.paidUntil = new Date(base + beforeView.cycleDays * 24 * 60 * 60 * 1000).toISOString();
+      villageState.homeService.fundsGold = 0;
+      const currentLevel = Math.max(1, villageBuildingLevel("kittyHomeServiceCenter"));
+      villageState.homeService.fundingLevel = currentLevel;
+      villageState.homeService.fundingFeeGold = 200000 * currentLevel;
+    }
+    const response = { ...homeServiceView(), requestId };
+    villageState.donations[donationKey] = {
+      playerUuid: player.uuid,
+      requestId: normalizedRequestId,
+      count,
+      status: "committed",
+      response,
+      committedAt: new Date().toISOString()
+    };
+    // success 只能在玩家扣款、公共筹款和幂等记录全部同步落盘后发送。
+    commitVillageTransaction();
+    transactionCommitted = true;
+    for (const connected of marketPlayerSockets(player.uuid)) emitPlayerResources(connected);
+    emitGameEvent(socket, "homeService:donate:success", response);
+    broadcastHomeServiceStatus(response);
+    return true;
+  } catch (error) {
+    if (transactionCommitted) {
+      console.error("[homeService] donation committed but notification failed", error);
+      return fail("捐助已完成，请刷新状态");
+    }
+    let preparedWalExists = false;
+    try {
+      const wal = JSON.parse(fs.readFileSync(homeServiceWalFile, "utf8"));
+      preparedWalExists = wal?.status === "prepared";
+      if (!preparedWalExists) fs.rmSync(homeServiceWalFile, { force: true });
+    } catch {
+      preparedWalExists = false;
+    }
+    if (!preparedWalExists) {
+      setGoldCount(player, goldBefore);
+      villageState.homeService = serviceBefore;
+      villageState.donations = donationsBefore;
+    }
+    console.error("[homeService] donation commit failed", error);
+    return fail(preparedWalExists ? "服务器正在恢复交易，请稍后使用同一请求编号重试" : "服务器开小差了");
+  }
+}
+
+function broadcastVillageEvent(event, payload) {
+  for (const connected of io.sockets.sockets.values()) {
+    if (connected.player) emitGameEvent(connected, event, payload);
+  }
+}
+
+function villageListView() {
+  return ensureVillageBuildings().map(villagePublicBuilding);
+}
+
+function broadcastVillageBuilding(entry, includeList = true) {
+  const building = villagePublicBuilding(entry);
+  const fundList = villageFundList(entry);
+  broadcastVillageEvent("villageBuilding:fund:success", { buildingType: entry.type, fundList });
+  if (includeList) broadcastVillageEvent("villageBuilding:list:success", { list: villageListView() });
+  broadcastVillageEvent("villageBuilding:normalStateBaseBuildings:success", { list: villageBuildingProjection() });
+  broadcastHomeServiceStatus();
+  return { building, fundList };
+}
+
+function completeVillageBuildingPhase(entry, now = Date.now()) {
+  if (!entry) return false;
+  const originalPhaseId = entry.phaseId;
+  const expectedLevel = Math.max(0, Math.floor(Number(entry.targetLevel) || 0));
+  if (entry.status === "BUILDING") {
+    const end = Date.parse(entry.endBuildAt || "");
+    if (!originalPhaseId || expectedLevel !== 1 || !Number.isFinite(end) || end > now) return false;
+    entry.level = 1;
+    entry.status = "NORMAL";
+    entry.startBuildAt = null;
+    entry.endBuildAt = null;
+  } else if (entry.status === "UPGRADING") {
+    const end = Date.parse(entry.endUpgradeAt || "");
+    if (!originalPhaseId || expectedLevel !== entry.level + 1 || !Number.isFinite(end) || end > now) return false;
+    entry.level = expectedLevel;
+    entry.status = "NORMAL";
+    entry.startUpgradeAt = null;
+    entry.endUpgradeAt = null;
+  } else {
+    return false;
+  }
+  entry.phaseId = null;
+  entry.targetLevel = null;
+  entry.fundList = [];
+  entry.updatedAt = new Date(now).toISOString();
+  return true;
+}
+
+function reconcileVillageBuildings({ persist = true, broadcast = true } = {}) {
+  let changed = false;
+  const completed = [];
+  for (const entry of ensureVillageBuildings()) {
+    if (!completeVillageBuildingPhase(entry)) continue;
+    changed = true;
+    completed.push(entry);
+  }
+  if (changed && persist) schedulePersist();
+  if (changed && broadcast) {
+    broadcastVillageEvent("villageBuilding:list:success", { list: villageListView() });
+    broadcastVillageEvent("villageBuilding:normalStateBaseBuildings:success", { list: villageBuildingProjection() });
+    for (const entry of completed) broadcastVillageEvent("villageBuilding:fund:success", { buildingType: entry.type, fundList: [] });
+    broadcastHomeServiceStatus();
+  }
+  return changed;
+}
+
+function beginVillagePhase(entry, kind) {
+  const catalog = VILLAGE_BUILDING_CATALOG[entry.type];
+  const isBuild = kind === "build";
+  const targetLevel = isBuild ? 1 : entry.level + 1;
+  const phase = isBuild ? { cost: catalog.buildCost, durationSeconds: catalog.buildDurationSeconds } : catalog.upgrades[entry.level];
+  if (!phase) return null;
+  const now = new Date().toISOString();
+  entry.status = isBuild ? "PREPARE" : "PREPARE_UPGRADE";
+  entry.phaseId = nextVillagePhaseId(entry.type, targetLevel);
+  entry.targetLevel = targetLevel;
+  entry.fundList = villagePhaseRows(phase.cost);
+  entry.updatedAt = now;
+  if (entry.createdAt === new Date(0).toISOString()) entry.createdAt = now;
+  return entry;
+}
+
+function startFundedVillagePhase(entry) {
+  const rows = villageFundList(entry);
+  if (!rows.length || rows.some((row) => row.status !== "COMPLETED")) return false;
+  const now = Date.now();
+  if (entry.status === "PREPARE") {
+    entry.status = "BUILDING";
+    entry.startBuildAt = new Date(now).toISOString();
+    entry.endBuildAt = new Date(now + VILLAGE_BUILDING_CATALOG[entry.type].buildDurationSeconds * 1000).toISOString();
+  } else if (entry.status === "PREPARE_UPGRADE") {
+    const phase = VILLAGE_BUILDING_CATALOG[entry.type].upgrades[entry.level];
+    if (!phase) return false;
+    entry.status = "UPGRADING";
+    entry.startUpgradeAt = new Date(now).toISOString();
+    entry.endUpgradeAt = new Date(now + phase.durationSeconds * 1000).toISOString();
+  } else {
+    return false;
+  }
+  entry.updatedAt = new Date(now).toISOString();
+  return true;
+}
+
+function normalizeVillageDonationInfo(info, entry = null) {
+  if (!info || typeof info !== "object" || Array.isArray(info)) return null;
+  const remainingById = entry
+    ? new Map(villageFundList(entry).map((row) => [row.materialId, row.required - row.collected]))
+    : null;
+  const normalized = {};
+  for (const [materialId, raw] of Object.entries(info)) {
+    if (remainingById && !remainingById.has(materialId)) return null;
+    const count = Number(raw?.count ?? raw);
+    if (!Number.isSafeInteger(count) || count < 1 || (remainingById && count > remainingById.get(materialId))) return null;
+    normalized[materialId] = count;
+  }
+  return Object.keys(normalized).length ? normalized : null;
+}
+
+function villageDonationHistory(type) {
+  return (Array.isArray(villageState.buildingDonations) ? villageState.buildingDonations : [])
+    .filter((entry) => entry.buildingType === type)
+    .map((entry) => ({
+      userUuid: entry.donorUuid,
+      donorUuid: entry.donorUuid,
+      buildingLevel: entry.buildingLevel,
+      materialId: entry.materialId,
+      amount: entry.amount,
+      createdAt: entry.createdAt
+    }));
+}
+
+function handleVillageBuildingEvent(socket, event, data) {
+  const player = socket.player;
+  if (!player) return true;
+  reconcileVillageBuildings();
+  const fail = (message, extra = {}) => {
+    emitGameEvent(socket, `${event}:fail`, { message, ...extra });
+    return true;
+  };
+  if (event === "villageBuilding:list") {
+    emitGameEvent(socket, `${event}:success`, { list: villageListView() });
+    return true;
+  }
+  if (event === "villageBuilding:normalStateBaseBuildings") {
+    emitGameEvent(socket, `${event}:success`, { list: villageBuildingProjection() });
+    return true;
+  }
+  const buildingType = String(data?.buildingType || "");
+  const entry = villageBuildingByType(buildingType);
+  if (!entry) return fail("未知的小镇建筑");
+  if (event === "villageBuilding:fund") {
+    emitGameEvent(socket, `${event}:success`, { buildingType, fundList: villageFundList(entry) });
+    return true;
+  }
+  if (event === "villageBuilding:donationList") {
+    emitGameEvent(socket, `${event}:success`, { list: villageDonationHistory(buildingType) });
+    return true;
+  }
+  if (event === "villageBuilding:prepare") {
+    if (entry.status !== "UNBUILD") return fail("该建筑已进入筹备或建造阶段");
+    beginVillagePhase(entry, "build");
+    schedulePersist();
+    const response = { building: villagePublicBuilding(entry), fundList: villageFundList(entry) };
+    emitGameEvent(socket, `${event}:success`, response);
+    broadcastVillageBuilding(entry);
+    return true;
+  }
+  if (event === "villageBuilding:upgrade") {
+    if (entry.status !== "NORMAL") return fail("该建筑当前无法升级");
+    if (entry.level >= VILLAGE_BUILDING_CATALOG[buildingType].maxLevel) return fail("该建筑已达到最高等级");
+    if (!beginVillagePhase(entry, "upgrade")) return fail("该建筑没有可用的升级方案");
+    schedulePersist();
+    const response = { building: villagePublicBuilding(entry), fundList: villageFundList(entry) };
+    emitGameEvent(socket, `${event}:success`, response);
+    broadcastVillageBuilding(entry);
+    return true;
+  }
+  if (event !== "villageBuilding:donate") return false;
+  const requestId = typeof data?.requestId === "string" ? data.requestId.trim().toLowerCase() : "";
+  if (!VILLAGE_BUILDING_REQUEST_ID_PATTERN.test(requestId)) return fail("捐赠请求编号不合法", { code: "INVALID_REQUEST_ID" });
+  const requestKey = `${player.uuid}:${requestId}`;
+  const previous = villageState.buildingRequests[requestKey];
+  if (previous) {
+    // 永久幂等记录必须先于当前阶段校验：ACK 丢失后的重试可能发生在资金已满、施工完成，
+    // 甚至下一次升级募集开始之后。用请求本身的语义比对，而不是用当前 entry.phaseId 重算。
+    const replayInfo = normalizeVillageDonationInfo(data?.info, null);
+    const replaySignature = replayInfo
+      ? villageDonationSignature(previous.buildingType || buildingType, previous.phaseId || "", replayInfo)
+      : "";
+    if (!replayInfo || previous.signature !== replaySignature || (previous.buildingType && previous.buildingType !== buildingType)) {
+      return fail("requestId 已用于另一笔捐赠", { code: "IDEMPOTENCY_CONFLICT", requestId });
+    }
+    emitGameEvent(socket, `${event}:success`, previous.response);
+    return true;
+  }
+  if (!["PREPARE", "PREPARE_UPGRADE"].includes(entry.status)) return fail("该建筑当前不接受捐赠");
+  const expectedPhaseId = typeof data?.expectedPhaseId === "string" ? data.expectedPhaseId : "";
+  if (expectedPhaseId && expectedPhaseId !== entry.phaseId) return fail("募集阶段已变化，请刷新后重试", { code: "PHASE_CHANGED" });
+  const info = normalizeVillageDonationInfo(data?.info, entry);
+  if (!info) return fail("捐赠材料或数量无效");
+  const signature = villageDonationSignature(buildingType, entry.phaseId, info);
+  for (const [materialId, count] of Object.entries(info)) {
+    if (getAssetCount(player, materialId) < count) return fail(`${materialId} 数量不足`);
+  }
+  const inventoryBefore = structuredClone(player.inventory);
+  const resourcesBefore = structuredClone(player.resources);
+  const entryBefore = structuredClone(entry);
+  const historyBefore = structuredClone(villageState.buildingDonations);
+  const requestsBefore = structuredClone(villageState.buildingRequests);
+  let committed = false;
+  try {
+    for (const [materialId, count] of Object.entries(info)) {
+      if (!removeAsset(player, materialId, count)) throw new Error(`failed to deduct ${materialId}`);
+      const row = entry.fundList.find((item) => item.materialId === materialId);
+      row.collected += count;
+      row.status = row.collected >= row.required ? "COMPLETED" : "COLLECTING";
+      villageState.buildingDonations.push({
+        id: crypto.randomUUID(), donorUuid: player.uuid, buildingType, phaseId: entry.phaseId,
+        buildingLevel: entry.targetLevel, materialId, amount: count, createdAt: new Date().toISOString()
+      });
+    }
+    startFundedVillagePhase(entry);
+    const response = { requestId, buildingType, building: villagePublicBuilding(entry), fundList: villageFundList(entry) };
+    villageState.buildingRequests[requestKey] = {
+      playerUuid: player.uuid, requestId, buildingType, phaseId: entryBefore.phaseId, signature,
+      status: "committed", response, committedAt: new Date().toISOString()
+    };
+    commitVillageTransaction();
+    committed = true;
+    for (const connected of marketPlayerSockets(player.uuid)) emitPlayerResources(connected);
+    emitGameEvent(socket, `${event}:success`, response);
+    broadcastVillageBuilding(entry);
+    return true;
+  } catch (error) {
+    if (!committed && !fs.existsSync(homeServiceWalFile)) {
+      player.inventory = inventoryBefore;
+      player.resources = resourcesBefore;
+      Object.assign(entry, entryBefore);
+      villageState.buildingDonations = historyBefore;
+      villageState.buildingRequests = requestsBefore;
+    }
+    console.error("[village] donation commit failed", error);
+    return fail(committed ? "捐赠已完成，请刷新状态" : "服务器开小差了", { requestId });
+  }
+}
+
+setInterval(() => {
+  reconcileVillageBuildings();
+}, 1000).unref();
+
+// ── 排行榜 ─────────────────────────────────────────────────────────────────────
+const WEEKLY_RANKING_CATEGORIES = new Set(["goldEarned", "total", ...statusKeys]);
+
+function isIronPlayer(player) {
+  return player?.ironcat === true || player?.isIronCat === true;
+}
+
+function rankingStableCompare(left, right) {
+  const rankDiff = Number(right.rank) - Number(left.rank);
+  if (rankDiff) return rankDiff;
+  const leftPlayer = players.get(left.uuid);
+  const rightPlayer = players.get(right.uuid);
+  const createdDiff = String(leftPlayer?.createdAt || "").localeCompare(String(rightPlayer?.createdAt || ""));
+  return createdDiff || String(left.uuid).localeCompare(String(right.uuid));
+}
+
+function rankingRows(pool, metric) {
+  return pool
+    .map((player) => ({ uuid: player.uuid, name: player.name, rank: Math.max(0, Number(metric(player)) || 0) }))
+    .sort(rankingStableCompare);
+}
+
+function totalRankingPayload(ironMode) {
+  const pool = [...players.values()].filter((player) => isIronPlayer(player) === ironMode);
+  const suffix = ironMode ? "iron" : "normal";
+  const list = [];
+  const add = (name, rows) => list.push({ name, list: rows });
+  add(`gold_ranking_list_${suffix}`, rankingRows(pool, (player) => getAssetCount(player, "gold")));
+  add(`cat_paw_coin_ranking_list_${suffix}`, rankingRows(pool, (player) => getAssetCount(player, "catPawCoin")));
+  add(`cat_paw_stamp_ranking_list_${suffix}`, rankingRows(pool, (player) => getAssetCount(player, "catPawStamp")));
+  // sponsor_ranking_list 在普通/硬核页共用名称；只展示对应模式玩家。
+  add("sponsor_ranking_list", rankingRows(pool, (player) => player.sponsorPoint?.max));
+  add(`character_total_level_ranking_list_${suffix}`, rankingRows(pool, (player) => Object.values(getPlayerStatus(player)).reduce((sum, status) => sum + status.level, 0)));
+  for (const status of statusKeys) add(`character_${status}_level_ranking_list_${suffix}`, rankingRows(pool, (player) => getPlayerStatus(player)[status].level));
+  // 友情、好友数与强化榜尚无可信数据模型；不要以空榜伪装成真实零结果。
+  return list;
+}
+
+function normalizeRankingDate(value) {
+  return rankingLocalDateKey(value || Date.now());
+}
+
+function rankingWeekDateKeys(value) {
+  const key = normalizeRankingDate(value);
+  const [year, month, day] = key.split("-").map(Number);
+  const selected = new Date(Date.UTC(year, month - 1, day, 12));
+  const isoWeekday = selected.getUTCDay() || 7;
+  selected.setUTCDate(selected.getUTCDate() - isoWeekday + 1);
+  return Array.from({ length: 7 }, (_unused, index) => {
+    const date = new Date(selected);
+    date.setUTCDate(selected.getUTCDate() + index);
+    return date.toISOString().slice(0, 10);
+  });
+}
+
+function weeklyRankingPayload(data, ironMode) {
+  const category = typeof data?.category === "string" && WEEKLY_RANKING_CATEGORIES.has(data.category) ? data.category : "goldEarned";
+  const date = normalizeRankingDate(data?.date);
+  const dateKeys = rankingWeekDateKeys(date);
+  const entries = [...players.values()]
+    .filter((player) => isIronPlayer(player) === ironMode)
+    .map((player) => ({
+      userUuid: player.uuid,
+      value: Math.round(dateKeys.reduce((sum, key) => sum + (Number(player.weeklyRanking?.[key]?.[category]) || 0), 0) * 100) / 100,
+      createdAt: player.createdAt
+    }))
+    .filter((entry) => entry.value > 0)
+    .sort((left, right) => right.value - left.value || String(left.createdAt || "").localeCompare(String(right.createdAt || "")) || left.userUuid.localeCompare(right.userUuid))
+    .map(({ userUuid, value }) => ({ userUuid, value }));
+  return { category, date, entries, totalCount: entries.length };
+}
+
+function handleRankingEvent(socket, event, data) {
+  if (event === "requestRankingList") {
+    emitGameEvent(socket, "rankingList", totalRankingPayload(false));
+    return true;
+  }
+  if (event === "requestIronRankingList") {
+    emitGameEvent(socket, "ironRankingList", totalRankingPayload(true));
+    return true;
+  }
+  if (event === "requestWeeklyRankingList") {
+    emitGameEvent(socket, "weeklyRankingList", weeklyRankingPayload(data, false));
+    return true;
+  }
+  if (event === "requestWeeklyIronRankingList") {
+    emitGameEvent(socket, "weeklyIronRankingList", weeklyRankingPayload(data, true));
+    return true;
+  }
+  return false;
 }
 
 function handleQuestEvent(socket, event, data) {
@@ -3977,11 +7094,7 @@ function farmLevel(player) {
 }
 
 function farmAddExp(player, amount) {
-  const gained = Math.floor(Number(amount) || 0);
-  if (gained <= 0) return;
-  const status = player.status[FARM_LEVEL_KEY] || { level: 1, exp: 0, currentExp: 0 };
-  const currentExp = Number(status.currentExp ?? status.exp) || 0;
-  player.status[FARM_LEVEL_KEY] = normalizeStatus({ ...status, currentExp: currentExp + gained, exp: currentExp + gained });
+  addStatusExp(player, FARM_LEVEL_KEY, Math.floor(Number(amount) || 0));
 }
 
 // 成熟按时间惰性结算：读列表 / 收获前把到点的 GROWING 翻成 READY。
@@ -4038,6 +7151,99 @@ function farmSyncInventory(socket, changes) {
     payload[resourceId] = { count: delta };
   }
   if (Object.keys(payload).length) emitGameEvent(socket, "inventoryModify", payload);
+}
+
+function harvestBoxes(player) {
+  if (!Array.isArray(player.harvestBoxes)) player.harvestBoxes = [];
+  return player.harvestBoxes;
+}
+
+function addHarvestBox(player, title, rewards) {
+  const items = Object.entries(rewards || {})
+    .filter(([, amount]) => Number(amount) > 0)
+    .map(([resourceId, amount]) => ({ id: crypto.randomUUID(), resourceId, amount: Math.max(1, Math.floor(Number(amount))), claimed: false }));
+  if (!items.length) return null;
+  // 相邻的自动收获合并到同一个未领取箱，避免一分钟巡检产生大量卡片。
+  let box = harvestBoxes(player).find((entry) => !entry.claimed && entry.title === title);
+  if (!box) {
+    box = { id: crypto.randomUUID(), title, createdAt: new Date().toISOString(), claimed: false, items: [] };
+    player.harvestBoxes.unshift(box);
+  }
+  for (const item of items) {
+    const existing = box.items.find((entry) => !entry.claimed && entry.resourceId === item.resourceId);
+    if (existing) existing.amount += item.amount;
+    else box.items.push(item);
+  }
+  return box;
+}
+
+function claimHarvestItems(player, predicate) {
+  const gained = {};
+  const claimedItems = [];
+  for (const box of harvestBoxes(player)) {
+    for (const item of Array.isArray(box.items) ? box.items : []) {
+      if (item.claimed || !predicate(box, item)) continue;
+      const amount = Math.max(0, Math.floor(Number(item.amount) || 0));
+      if (amount > 0) {
+        addAsset(player, item.resourceId, amount);
+        gained[item.resourceId] = (gained[item.resourceId] || 0) + amount;
+        claimedItems.push({ resourceId: item.resourceId, amount });
+      }
+      item.claimed = true;
+    }
+    box.claimed = (box.items || []).every((item) => item.claimed);
+  }
+  return { gained, claimedItems };
+}
+
+function handleHarvestBoxEvent(socket, event, data) {
+  const player = socket.player;
+  if (!player) return true;
+  const fail = (msg) => {
+    emitGameEvent(socket, `${event}:fail`, { msg });
+    return true;
+  };
+  if (event === "harvestBox:list") {
+    const includeClaimed = Boolean(data?.includeClaimed);
+    const take = Math.max(1, Math.min(50, Math.floor(Number(data?.take) || 5)));
+    const source = harvestBoxes(player).filter((box) => includeClaimed || !box.claimed);
+    let start = 0;
+    if (data?.beforeId) {
+      const index = source.findIndex((box) => box.id === data.beforeId);
+      if (index < 0) return fail("分页游标无效");
+      start = index + 1;
+    }
+    const list = source.slice(start, start + take);
+    emitGameEvent(socket, "harvestBox:list:success", {
+      list,
+      hasMore: start + take < source.length,
+      nextCursor: list.at(-1)?.id || null
+    });
+    return true;
+  }
+  let result;
+  if (event === "harvestBox:claim") {
+    const boxId = String(data?.boxId || "");
+    if (!harvestBoxes(player).some((box) => box.id === boxId)) return fail("收获箱不存在");
+    result = claimHarvestItems(player, (box) => box.id === boxId);
+  } else if (event === "harvestBox:claimItem") {
+    const itemId = String(data?.itemId || "");
+    if (!harvestBoxes(player).some((box) => (box.items || []).some((item) => item.id === itemId))) return fail("物品不存在");
+    result = claimHarvestItems(player, (_box, item) => item.id === itemId);
+  } else if (event === "harvestBox:claimAll") {
+    result = claimHarvestItems(player, () => true);
+  } else {
+    return false;
+  }
+  const { gained, claimedItems } = result;
+  emitGameEvent(socket, `${event}:success`, { gained, claimedItems, alreadyClaimed: !claimedItems.length });
+  for (const connected of marketPlayerSockets(player.uuid)) {
+    emitGameEvent(connected, "dispatchInventoryInfo", player.inventory);
+    emitGameEvent(connected, "inventoryUpdated", player.inventory);
+    emitGameEvent(connected, "inventoryModify", Object.fromEntries(Object.entries(gained).map(([id, count]) => [id, { count }])));
+  }
+  schedulePersist();
+  return true;
 }
 
 function handleFarmEvent(socket, event, data) {
@@ -4129,8 +7335,8 @@ function handleFarmEvent(socket, event, data) {
       changes[resourceId] = count;
     }
     farmAddExp(player, plan.crop.farmingPlantExpGainWhenHarvest);
-    // 开启补种时按原种子/肥料配置尝试续种，种子或肥料不足则只清空田地。
-    const replantCosts = plot.autoReplant ? farmPlantCosts(plan) : null;
+    // 手动收获不受欠费影响；只有仍在生效的 2 级家政服务才能顺带自动补种。
+    const replantCosts = plot.autoReplant && homeServiceCan(2) ? farmPlantCosts(plan) : null;
     const replantMissing = replantCosts ? farmTakeCosts(player, replantCosts) : null;
     if (replantCosts && !replantMissing) {
       for (const item of replantCosts) changes[item.id] = (changes[item.id] || 0) - item.count;
@@ -4158,7 +7364,9 @@ function handleFarmEvent(socket, event, data) {
   if (event === "farm:plot:autoReplant") {
     const plot = farmFindPlot(player, payload.plotIndex);
     if (!plot) return fail("该田地尚未开垦");
-    plot.autoReplant = Boolean(payload.value);
+    const enabled = Boolean(payload.value);
+    if (enabled && !homeServiceCan(2)) return fail("需要已缴费且达到 2 级的家政服务中心");
+    plot.autoReplant = enabled;
     emitGameEvent(socket, "farm:plot:autoReplant:success", { plot: { ...plot } });
     schedulePersist();
     return true;
@@ -4170,13 +7378,7 @@ function handleFarmEvent(socket, event, data) {
 function applyActionImprovements(player, actionId) {
   let updated = false;
   for (const improvement of actionImprovements[actionId] || []) {
-    const status = player.status[improvement.status] || { level: 1, exp: 0, currentExp: 0 };
-    const currentExp = Number(status.currentExp ?? status.exp) || 0;
-    player.status[improvement.status] = normalizeStatus({
-      ...status,
-      currentExp: currentExp + improvement.increaseExp,
-      exp: currentExp + improvement.increaseExp
-    });
+    addStatusExp(player, improvement.status, improvement.increaseExp);
     updated = true;
   }
   return updated;
@@ -4301,29 +7503,337 @@ function startTaskRunner(socket) {
   runTaskQueue(socket);
 }
 
-// 在线玩家每分钟巡检：跨过 4 小时档位就补一份新任务、把到点的作物翻成可收获，并推送。
+// 在线玩家每分钟巡检：按玩家 UUID 去重（同一账号多标签页不能把自动化跑两次）。
 setInterval(() => {
   let changed = false;
+  const processedPlayers = new Set();
   for (const socket of io.sockets.sockets.values()) {
     const player = socket.player;
-    if (!player) continue;
+    if (!player || processedPlayers.has(player.uuid)) continue;
+    processedPlayers.add(player.uuid);
+    let playerChanged = false;
     if (syncQuests(player)) {
-      emitGameEvent(socket, "quest:list:success", player.quests);
+      emitToPlayer(player.uuid, "quest:list:success", player.quests);
       changed = true;
+      playerChanged = true;
     }
     if (farmRefreshPlots(player)) {
-      emitGameEvent(socket, "farm:plots:success", { list: player.farmPlots });
       changed = true;
+      playerChanged = true;
+    }
+    // Lv2 且服务生效时才自动收获；欠费不会修改 autoReplant 配置，续费后继续执行。
+    if (homeServiceCan(2)) {
+      for (const plot of farmEnsurePlots(player)) {
+        if (plot.state !== "READY" || !plot.autoReplant) continue;
+        const seedId = plot.seedId;
+        const plan = farmPlantPlan(seedId, plot.fertilizers);
+        if (!plan) continue;
+        const rawRewards = farmRollYields(plan);
+        const rewards = Object.fromEntries(Object.entries(rawRewards).map(([id, count]) => [id, Math.ceil(count * 0.8)]).filter(([, count]) => count > 0));
+        addHarvestBox(player, "家政服务自动收获", rewards);
+        farmAddExp(player, plan.crop.farmingPlantExpGainWhenHarvest);
+        const replantCosts = farmPlantCosts(plan);
+        const replantMissing = farmTakeCosts(player, replantCosts);
+        if (!replantMissing) farmStartGrowing(plot, seedId, plan);
+        else farmClearPlot(plot);
+        changed = true;
+        playerChanged = true;
+      }
+    }
+    if (playerChanged) {
+      emitToPlayer(player.uuid, "farm:plots:success", { list: player.farmPlots });
+      emitToPlayer(player.uuid, "dispatchCharacterStatusInfo", characterInitData(player).status);
+      for (const connected of marketPlayerSockets(player.uuid)) emitPlayerResources(connected);
     }
   }
   if (changed) schedulePersist();
 }, 60 * 1000);
+
+const KNOWN_UNSUPPORTED_SOCKET_EVENTS = new Map([
+  ["kitty:getAllFriend", { feature: "kittyFriendProfile", suffix: "error", message: "其他猫咪档案尚未实现" }],
+  ["kitty:getAllTask", { feature: "kittyTaskQueue", suffix: "error", message: "猫咪独立任务队列尚未实现" }],
+  ["worldBoss:listAvailable", { feature: "worldBoss", suffix: "fail", message: "世界 Boss 尚未实现" }],
+  ["battle:battleInfoDetail", { feature: "battleInfoDetailQuery", suffix: "error", message: "主动查询战斗统计尚未实现；战斗结束时仍会推送统计" }]
+]);
+
+function handleKnownUnsupportedEvent(socket, event) {
+  const contract = KNOWN_UNSUPPORTED_SOCKET_EVENTS.get(event);
+  if (!contract) return false;
+  if (contract.responseEvent) {
+    emitGameEvent(socket, contract.responseEvent, unsupportedFeaturePayload(contract.feature, event, contract.message));
+    return true;
+  }
+  return emitUnsupportedFeature(socket, event, contract.feature, contract.suffix, contract.message);
+}
+
+const PHASE_ONE_SOCKET_EVENTS = new Set([
+  "userPersonalization:get", "userPersonalization:setFavorites", "style:get", "style:setAll"
+]);
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function parseStrictClientEnvelope(payload, { allowNullData = false } = {}) {
+  if (typeof payload !== "string") return { ok: false };
+  let outer;
+  try { outer = JSON.parse(payload); } catch { return { ok: false }; }
+  if (!isPlainObject(outer) || Object.keys(outer).length !== 1 || !Object.hasOwn(outer, "data")) return { ok: false };
+  if (outer.data === null && allowNullData) return { ok: true, data: null };
+  if (!isPlainObject(outer.data)) return { ok: false };
+  return { ok: true, data: outer.data };
+}
+
+function invalidPayload(message = "请求格式无效") {
+  return { code: "INVALID_PAYLOAD", message };
+}
+
+function versionConflict(state, message = "数据版本已变化，请刷新后重试") {
+  return { code: "VERSION_CONFLICT", message, version: state.version, state };
+}
+
+function validateExpectedVersion(value) {
+  return value === undefined || (Number.isSafeInteger(value) && value >= 0);
+}
+
+function validatePhaseOneRequestId(value) {
+  return value === undefined || (typeof value === "string" && value.length >= 1 && value.length <= 100);
+}
+
+function withPhaseOneRequestId(payload, requestId) {
+  return requestId === undefined ? payload : { ...payload, requestId };
+}
+
+function validatePersonalizationMutation(data) {
+  if (!isPlainObject(data) || Object.keys(data).some((key) => !["favorites", "categoryOrder", "expectedVersion", "requestId"].includes(key))
+    || (!Object.hasOwn(data, "favorites") && !Object.hasOwn(data, "categoryOrder"))
+    || !validateExpectedVersion(data.expectedVersion) || !validatePhaseOneRequestId(data.requestId)) return invalidPayload();
+  let favorites;
+  if (Object.hasOwn(data, "favorites")) {
+    if (!Array.isArray(data.favorites) || data.favorites.length > PERSONALIZATION_FAVORITES_LIMIT) return invalidPayload();
+    const seen = new Set();
+    favorites = [];
+    for (const id of data.favorites) {
+      if (typeof id !== "string" || FORBIDDEN_OBJECT_KEYS.has(id) || seen.has(id) || !RESOURCE_ID_CATALOG.has(id)) return invalidPayload();
+      seen.add(id);
+      favorites.push(id);
+    }
+  }
+  let categoryOrder;
+  if (Object.hasOwn(data, "categoryOrder")) {
+    if (!Array.isArray(data.categoryOrder) || data.categoryOrder.length > PERSONALIZATION_CATEGORY_LIMIT) return invalidPayload();
+    const seen = new Set();
+    categoryOrder = [];
+    for (const category of data.categoryOrder) {
+      if (typeof category !== "string" || category.length === 0 || category.length > PERSONALIZATION_CATEGORY_LENGTH_LIMIT
+        || FORBIDDEN_OBJECT_KEYS.has(category) || seen.has(category)) return invalidPayload();
+      seen.add(category);
+      categoryOrder.push(category);
+    }
+  }
+  return { favorites, categoryOrder, expectedVersion: data.expectedVersion, requestId: data.requestId };
+}
+
+function validateDiyMutation(value) {
+  if (!isPlainObject(value) || Object.keys(value).some((key) => !["bgColor", "textColor", "textShadow"].includes(key))) return null;
+  if (!Array.isArray(value.bgColor) || !Array.isArray(value.textColor) || !Array.isArray(value.textShadow)
+    || value.bgColor.length > DIY_COLOR_LIMIT || value.textColor.length > DIY_COLOR_LIMIT || value.textShadow.length > DIY_TEXT_SHADOW_LIMIT) return null;
+  const colors = (values) => {
+    const seen = new Set();
+    const result = [];
+    for (const color of values) {
+      if (typeof color !== "string" || !SAFE_CSS_HEX.test(color)) return null;
+      const key = color.toLowerCase();
+      if (!seen.has(key)) { seen.add(key); result.push(color); }
+    }
+    return result;
+  };
+  const bgColor = colors(value.bgColor);
+  const textColor = colors(value.textColor);
+  if (!bgColor || !textColor) return null;
+  const shadowSeen = new Set();
+  const textShadow = [];
+  for (const shadow of value.textShadow) {
+    if (!isPlainObject(shadow) || Object.keys(shadow).sort().join(",") !== "blur,color" || typeof shadow.color !== "string"
+      || !SAFE_CSS_HEX.test(shadow.color) || !Number.isInteger(shadow.blur) || shadow.blur < 1 || shadow.blur > 10) return null;
+    const key = `${shadow.color.toLowerCase()}\u0000${shadow.blur}`;
+    if (!shadowSeen.has(key)) { shadowSeen.add(key); textShadow.push({ color: shadow.color, blur: shadow.blur }); }
+  }
+  return { bgColor, textColor, textShadow };
+}
+
+function validateStyleMutation(player, data) {
+  if (!isPlainObject(data) || Object.keys(data).some((key) => !["style", "expectedVersion", "requestId"].includes(key))
+    || !Object.hasOwn(data, "style") || !validateExpectedVersion(data.expectedVersion)
+    || !validatePhaseOneRequestId(data.requestId) || !isPlainObject(data.style)) return invalidPayload();
+  const style = data.style;
+  const acceptedEchoes = new Set(["version", "updatedAt", "diyChatBubbleStyle", ...STYLE_FIELDS.flatMap(([, available, current]) => [available, current])]);
+  if (Object.keys(style).some((key) => !acceptedEchoes.has(key))) return invalidPayload();
+  const current = normalizeStyleState(player.style, player.uniqueFlag);
+  const selected = {};
+  for (const [category, , currentField] of STYLE_FIELDS) {
+    if (!Object.hasOwn(style, currentField) || typeof style[currentField] !== "string") return invalidPayload();
+    const choice = style[currentField];
+    if (choice === "diy" || (choice !== "" && !current.owned[category].includes(choice))) return { code: "STYLE_NOT_OWNED", message: "所选样式尚未拥有" };
+    selected[category] = choice;
+  }
+  let diy = freshStyleState().diyChatBubbleStyle;
+  if (Object.hasOwn(style, "diyChatBubbleStyle")) {
+    diy = validateDiyMutation(style.diyChatBubbleStyle);
+    if (!diy) return invalidPayload();
+  }
+  const nonemptyDiy = diy.bgColor.length || diy.textColor.length || diy.textShadow.length;
+  if (nonemptyDiy && !hasDiyStyleEntitlement(player)) return { code: "STYLE_NOT_OWNED", message: "尚未解锁自定义聊天气泡" };
+  return { selected, diy, expectedVersion: data.expectedVersion, requestId: data.requestId };
+}
+
+function persistPlayersNow() {
+  const hadPendingFullFlush = Boolean(persistTimer) || persistRequested;
+  if (phaseOneTestHooksEnabled) {
+    testPersistenceCounters.phaseOnePersistCalls += 1;
+    if (hadPendingFullFlush) testPersistenceCounters.phaseOnePendingBranchStarted += 1;
+  }
+  if (persistTimer) { clearTimeout(persistTimer); persistTimer = null; }
+  if (persistInProgress) throw new Error("persistence busy");
+  if (hadPendingFullFlush) {
+    persistRequested = false;
+    persistInProgress = true;
+    try {
+      writeJsonAtomic(marketDataFile, [...marketTrades.values()].map(marketPersistenceView));
+      writeJsonAtomic(socialDataFile, socialPersistenceView());
+      writeJsonAtomic(auctionDataFile, auctionPersistenceView());
+      writeJsonAtomic(shopDataFile, shopPersistenceView());
+      writeJsonAtomic(villageDataFile, villagePersistenceView());
+      writeJsonAtomic(battleRoomFile, { version: 1, savedAt: new Date().toISOString(), rooms: [...battleRooms.values()].map(battleRoomPersistenceView) });
+      writePlayersJsonNow({ injectFailure: true });
+      if (phaseOneTestHooksEnabled) testPersistenceCounters.phaseOnePendingBranchCompleted += 1;
+    } catch (error) {
+      if (phaseOneTestHooksEnabled) {
+        testPersistenceCounters.phaseOnePendingBranchFailed += 1;
+        testPersistenceCounters.phaseOneRetryScheduled += 1;
+        testPhaseOneRetriesPending += 1;
+      }
+      persistRequested = false;
+      setTimeout(() => {
+        if (phaseOneTestHooksEnabled) {
+          testPersistenceCounters.phaseOneRetryStarted += 1;
+          testPhaseOneRetryReady = true;
+        }
+        persistRequested = false;
+        schedulePersist();
+      }, 0).unref?.();
+      throw error;
+    } finally {
+      persistInProgress = false;
+      if (persistRequested) { persistRequested = false; schedulePersist(); }
+    }
+    return;
+  }
+  persistInProgress = true;
+  try { writePlayersJsonNow({ injectFailure: true }); }
+  finally { persistInProgress = false; }
+}
+
+function phaseOneSockets(uuid) {
+  return [...io.sockets.sockets.values()].filter((candidate) => candidate.player?.uuid === uuid);
+}
+
+function emitPhaseOneSuccess(socket, uuid, event, payload, requestId) {
+  for (const target of phaseOneSockets(uuid)) {
+    emitGameEvent(target, event, target === socket ? withPhaseOneRequestId(payload, requestId) : payload);
+  }
+}
+
+function handlePhaseOneSocketEvent(socket, event, payload) {
+  if (!PHASE_ONE_SOCKET_EVENTS.has(event)) return false;
+  if (event === "userPersonalization:get") {
+    const parsed = parseStrictClientEnvelope(payload, { allowNullData: true });
+    if (!parsed.ok) {
+      emitGameEvent(socket, "userPersonalization:error", invalidPayload());
+      return true;
+    }
+    const requestId = parsed.data?.requestId;
+    if ((parsed.data !== null && Object.keys(parsed.data).some((key) => key !== "requestId"))
+      || !validatePhaseOneRequestId(requestId)) {
+      emitGameEvent(socket, "userPersonalization:error", withPhaseOneRequestId(invalidPayload(), validatePhaseOneRequestId(requestId) ? requestId : undefined));
+      return true;
+    }
+    const state = normalizePersonalizationState(socket.player.personalization);
+    socket.player.personalization = state;
+    emitGameEvent(socket, "userPersonalization:get:success", withPhaseOneRequestId(state, requestId));
+    return true;
+  }
+  if (event === "style:get") {
+    const parsed = parseStrictClientEnvelope(payload, { allowNullData: true });
+    if (!parsed.ok) { emitGameEvent(socket, "style:get:fail", invalidPayload()); return true; }
+    const data = parsed.data ?? {};
+    if (Object.keys(data).some((key) => !["uuid", "requestId"].includes(key)) || !validatePhaseOneRequestId(data.requestId)
+      || (Object.hasOwn(data, "uuid") && (typeof data.uuid !== "string" || !data.uuid || !UUID_PATTERN.test(data.uuid)))) {
+      emitGameEvent(socket, "style:get:fail", withPhaseOneRequestId(invalidPayload(), validatePhaseOneRequestId(data.requestId) ? data.requestId : undefined));
+      return true;
+    }
+    const uuid = data.uuid || socket.player.uuid;
+    const target = players.get(uuid);
+    if (!target) {
+      emitGameEvent(socket, "style:get:fail", withPhaseOneRequestId({ code: "PLAYER_NOT_FOUND", message: "玩家不存在", uuid }, data.requestId));
+      return true;
+    }
+    emitGameEvent(socket, "style:get:success", withPhaseOneRequestId({ uuid, style: uuid === socket.player.uuid ? styleWireView(target) : publicStyleView(target) }, data.requestId));
+    return true;
+  }
+  const parsed = parseStrictClientEnvelope(payload);
+  const errorEvent = event === "style:setAll" ? "style:setAll:fail" : "userPersonalization:error";
+  if (!parsed.ok) { emitGameEvent(socket, errorEvent, invalidPayload()); return true; }
+  const rawRequestId = validatePhaseOneRequestId(parsed.data.requestId) ? parsed.data.requestId : undefined;
+  serializePhaseOneMutation(socket.player.uuid, () => {
+    const player = players.get(socket.player.uuid);
+    if (!player) return;
+    if (event === "userPersonalization:setFavorites") {
+      const checked = validatePersonalizationMutation(parsed.data);
+      if (checked.code) { emitGameEvent(socket, errorEvent, withPhaseOneRequestId(checked, rawRequestId)); return; }
+      const oldState = normalizePersonalizationState(player.personalization);
+      if (checked.expectedVersion !== undefined && checked.expectedVersion !== oldState.version) {
+        emitGameEvent(socket, errorEvent, withPhaseOneRequestId(versionConflict(oldState), checked.requestId)); return;
+      }
+      const next = { ...oldState, favoriteItems: checked.favorites ?? oldState.favoriteItems, categoryOrder: checked.categoryOrder ?? oldState.categoryOrder,
+        version: oldState.version + 1, updatedAt: nextUpdatedAt(oldState.updatedAt) };
+      player.personalization = next;
+      try { persistPlayersNow(); } catch {
+        player.personalization = oldState;
+        emitGameEvent(socket, errorEvent, withPhaseOneRequestId({ code: "PERSISTENCE_ERROR", message: "保存失败，请稍后重试" }, checked.requestId));
+        return;
+      }
+      emitPhaseOneSuccess(socket, player.uuid, "userPersonalization:setFavorites:success", {
+        favoriteItems: [...next.favoriteItems], categoryOrder: [...next.categoryOrder], version: next.version, updatedAt: next.updatedAt
+      }, checked.requestId);
+      return;
+    }
+    const checked = validateStyleMutation(player, parsed.data);
+    if (checked.code) { emitGameEvent(socket, errorEvent, withPhaseOneRequestId(checked, rawRequestId)); return; }
+    const oldState = normalizeStyleState(player.style, player.uniqueFlag);
+    if (checked.expectedVersion !== undefined && checked.expectedVersion !== oldState.version) {
+      emitGameEvent(socket, errorEvent, withPhaseOneRequestId(versionConflict(styleWireView(player)), checked.requestId)); return;
+    }
+    const next = { ...oldState, selected: checked.selected, diyChatBubbleStyle: checked.diy,
+      version: oldState.version + 1, updatedAt: nextUpdatedAt(oldState.updatedAt) };
+    player.style = next;
+    try { persistPlayersNow(); } catch {
+      player.style = oldState;
+      emitGameEvent(socket, errorEvent, withPhaseOneRequestId({ code: "PERSISTENCE_ERROR", message: "保存失败，请稍后重试" }, checked.requestId));
+      return;
+    }
+    emitPhaseOneSuccess(socket, player.uuid, "style:setAll:success", { style: styleWireView(player) }, checked.requestId);
+  }).catch((error) => {
+    console.error("phase-one mutation failed", error);
+    emitGameEvent(socket, errorEvent, withPhaseOneRequestId({ code: "INTERNAL_ERROR", message: "操作失败，请稍后重试" }, rawRequestId));
+  });
+  return true;
+}
 
 io.on("connection", (socket) => {
   if (!socket.player) {
     emitGameEvent(socket, "authRequired", { code: 401, msg: "未登录" });
     return;
   }
+  // 老存档可能在被禁用的槽位上还挂着装备，进游戏时先收拾干净
+  sanitizeDisabledBattleEquipment(socket.player);
   const sendCharacterInit = () => {
     if (syncQuests(socket.player)) schedulePersist();
     emitGameEvent(socket, "characterInitData", { data: characterInitData(socket.player) });
@@ -4336,20 +7846,32 @@ io.on("connection", (socket) => {
     if (socket.connected) sendCharacterInit();
   }, 500);
   socket.onAny((event, payload) => {
+    if (PHASE_ONE_SOCKET_EVENTS.has(event)) {
+      handlePhaseOneSocketEvent(socket, event, payload);
+      return;
+    }
     if (["connect", "disconnect"].includes(event)) return;
     if (event === "joinRoom") {
       sendCharacterInit();
       return;
     }
     if (["connect", "disconnect"].includes(event)) return;
-    const data = payload?.data ?? payload ?? {};
-    schedulePersist();
+    let data = payload;
+    if (typeof data === "string") {
+      try {
+        data = JSON.parse(data);
+      } catch {
+        data = {};
+      }
+    }
+    data = data?.data ?? data ?? {};
     if (event === "character:getEquipment") {
       const equipmentType = data.type === "battle" ? "battle" : "work";
       const equipment = equipmentType === "battle" ? socket.player.battleEquipment : socket.player.workEquipment;
       emitGameEvent(socket, `character:getEquipment:${equipmentType}:success`, equipment);
       return;
     }
+    if (handleRankingEvent(socket, event, data)) return;
     if (event.startsWith("market:") || event.startsWith("buyerMarket:") || event.startsWith("newMarket:")) {
       const handled = handleMarketEvent(socket, event, payload);
       if (handled !== false) return;
@@ -4379,6 +7901,11 @@ io.on("connection", (socket) => {
       emitPlayerResources(socket);
       return;
     }
+    if (event === "sponsorPoint:get") {
+      emitGameEvent(socket, "sponsorPoint:get:success", socket.player.sponsorPoint || { current: 0, max: 0 });
+      return;
+    }
+    if (handleKnownUnsupportedEvent(socket, event)) return;
     if (event.startsWith("battleRoom:") || event.startsWith("battle:")) {
       const handled = handleBattleRoomEvent(socket, event, data);
       if (handled !== false) return;
@@ -4475,28 +8002,50 @@ io.on("connection", (socket) => {
       return;
     }
     if (event === "effectAction:useItem") {
-      const result = useItem(socket.player, data.itemId, data.multiple);
-      if (result.error) {
-        emitGameEvent(socket, "effectAction:useItem:error", { message: result.error });
-        return;
-      }
-      emitGameEvent(socket, "dispatchInventoryInfo", socket.player.inventory);
-      emitGameEvent(socket, "inventoryUpdated", socket.player.inventory);
-      // 技能书走的是另一条返回（没有 gained），这里统一兜底
-      const gained = result.gained || {};
-      if (Object.keys(gained).length) emitGameEvent(socket, "inventory:increase:success", gained);
-      if (result.learnedSkill) {
-        // 学会新技能要让技能页立刻出现这张卡：store 只认 character:getSkills:success。
-        // 推到该玩家的所有 socket —— 手机和 PC 同时开着时，只有一端发 useItem 也要同步另一端。
-        emitToPlayer(socket.player.uuid, "character:getSkills:success", normalizePlayerSkills(socket.player));
-      }
-      emitGameEvent(socket, "effectAction:useItem:success", { itemId: data.itemId, multiple: Math.max(1, Math.floor(Number(data.multiple) || 1)), gained, learnedSkill: result.learnedSkill });
-      schedulePersist();
+      serializePhaseOneMutation(socket.player.uuid, () => {
+        const player = players.get(socket.player.uuid);
+        if (!player) return;
+        const oldInventory = structuredClone(player.inventory);
+        const oldFlags = structuredClone(player.uniqueFlag);
+        const oldStyle = structuredClone(player.style);
+        const result = useItem(player, data.itemId, data.multiple);
+        if (result.error) {
+          player.inventory = oldInventory;
+          player.uniqueFlag = oldFlags;
+          player.style = oldStyle;
+          emitGameEvent(socket, "effectAction:useItem:error", { message: result.error });
+          return;
+        }
+        if (result.cosmetic) {
+          try { persistPlayersNow(); } catch {
+            player.inventory = oldInventory;
+            player.uniqueFlag = oldFlags;
+            player.style = oldStyle;
+            emitGameEvent(socket, "effectAction:useItem:error", { code: "PERSISTENCE_ERROR", message: "保存失败，请稍后重试" });
+            return;
+          }
+        }
+        for (const target of phaseOneSockets(player.uuid)) {
+          emitGameEvent(target, "dispatchInventoryInfo", player.inventory);
+          emitGameEvent(target, "inventoryUpdated", player.inventory);
+        }
+        const gained = result.gained || {};
+        if (Object.keys(gained).length) emitGameEvent(socket, "inventory:increase:success", gained);
+        if (result.learnedSkill) emitToPlayer(player.uuid, "character:getSkills:success", normalizePlayerSkills(player));
+        emitGameEvent(socket, "effectAction:useItem:success", { itemId: data.itemId, multiple: Math.max(1, Math.floor(Number(data.multiple) || 1)), gained, learnedSkill: result.learnedSkill });
+        if (result.cosmetic) {
+          const stylePayload = { uuid: player.uuid, style: styleWireView(player) };
+          for (const target of phaseOneSockets(player.uuid)) emitGameEvent(target, "style:get:success", stylePayload);
+        } else schedulePersist();
+      }).catch((error) => {
+        console.error("use item mutation failed", error);
+        emitGameEvent(socket, "effectAction:useItem:error", { code: "INTERNAL_ERROR", message: "操作失败，请稍后重试" });
+      });
       return;
     }
     if (event === "effectAction:equipItem") {
       const resourceId = String(data.resourceId || "");
-      const result = equipItem(socket.player, resourceId, data.type);
+      const result = equipItem(socket.player, resourceId, data.type, data.part);
       if (result.error) {
         emitGameEvent(socket, "effectAction:equip:error", { message: result.error });
         return;
@@ -4588,10 +8137,60 @@ io.on("connection", (socket) => {
     ) {
       if (handleBattleInventoryEvent(socket, event, data)) return;
     }
-    if (event.startsWith("farm:") && handleFarmEvent(socket, event, data)) return;
+    if (event === "user:checkBanned") {
+      emitGameEvent(socket, "user:checkBanned:success", { banned: false });
+      return true;
+    }
+    if (event.startsWith("skillTree:") && handleSkillTreeEvent(socket, event, data) === true) return;
+    if (event.startsWith("friend:") && handleFriendEvent(socket, event, data) === true) return;
+    if (event.startsWith("guild:") && handleGuildEvent(socket, event, data) === true) return;
+    if (event.startsWith("chat:") && handleChatEvent(socket, event, data) === true) return;
+    if (event.startsWith("auction:") && handleAuctionEvent(socket, event, data) === true) return;
+    if (event.startsWith("playerShop:") && handlePlayerShopEvent(socket, event, data) === true) return;
+    if (event.startsWith("fishing:") && handleFishingEvent(socket, event, data) === true) return;
+    if (event.startsWith("outfit:") && handleOutfitEvent(socket, event, data) === true) return;
+    if (event.startsWith("villageBuilding:") && handleVillageBuildingEvent(socket, event, data) === true) return;
+    if (event.startsWith("homeService:") && handleHomeServiceEvent(socket, event, data) === true) return;
+    if (event.startsWith("harvestBox:") && handleHarvestBoxEvent(socket, event, data) === true) return;
+    if (event.startsWith("farm:") && handleFarmEvent(socket, event, data) === true) return;
+    if (event === "chefSkill:get") {
+      emitGameEvent(socket, "chefSkill:get:success", socket.player.chefSkill || { flavors: [], targets: [] });
+      return;
+    }
+    if (event === "chefSkill:update") {
+      const normalize = (list) => (Array.isArray(list) ? list : [])
+        .filter((row) => row && typeof row.key === "string")
+        .map((row) => ({ key: row.key, count: Math.max(0, Math.floor(Number(row.count) || 0)) }));
+      const info = data?.info && typeof data.info === "object" ? data.info : {};
+      socket.player.chefSkill = { flavors: normalize(info.flavors), targets: normalize(info.targets) };
+      schedulePersist();
+      emitGameEvent(socket, "chefSkill:update:success", socket.player.chefSkill);
+      return;
+    }
+    if (event === "msgPref:battle:set") {
+      socket.player.msgPref ||= { battle: false };
+      socket.player.msgPref.battle = Boolean(data?.enable);
+      schedulePersist();
+      emitGameEvent(socket, "msgPref:battle:set:success", { enable: socket.player.msgPref.battle });
+      return;
+    }
     if (event.startsWith("quest:") && handleQuestEvent(socket, event, data)) return;
-    const result = eventResult(event, socket.player, payload);
-    emitGameEvent(socket, `${event}:success`, result);
+    const result = eventResult(event, socket.player, data);
+    if (result !== undefined) {
+      emitGameEvent(socket, `${event}:success`, result);
+      return;
+    }
+    if (event === "character:getInfo" || event === "character:getProfile" || event === "character:getOtherPlayerEquipment" || event === "character:getOtherPlayerWorkEquipment") {
+      const notFound = { code: "PLAYER_NOT_FOUND", message: "玩家不存在", characterUuid: String(data?.characterUuid || "") };
+      emitGameEvent(socket, `${event}:error`, notFound);
+      emitGameEvent(socket, `${event}:fail`, notFound);
+      return;
+    }
+    const unsupported = { code: "UNSUPPORTED_EVENT", message: `功能尚未接入：${event}`, event };
+    // error 是全局统一契约；同时保留常见 fail 后缀，让只监听模块级 fail 的旧页面也能得到明确失败。
+    emitGameEvent(socket, `${event}:error`, unsupported);
+    emitGameEvent(socket, `${event}:fail`, unsupported);
+    console.warn(`[socket] unsupported event: ${event}`);
   });
 });
 
@@ -4612,23 +8211,31 @@ function shutdown() {
     clearTimeout(persistTimer);
     persistTimer = null;
   }
-  flushPersistedState();
+  let exitCode = 0;
+  try {
+    flushPersistedState();
+  } catch (error) {
+    exitCode = 1;
+    console.error("failed to persist during shutdown", error);
+  }
   // 必须先断开 Socket.IO 的长连接：只关 httpServer 的话 upgrade 连接不会自己结束，
   // systemd 的 stop-sigterm 会一直等到超时（90s）再 SIGKILL，每次发布白停一分半。
   try {
     io.close();
   } catch {}
   try {
-    httpServer.close(() => process.exit(0));
+    httpServer.close(() => process.exit(exitCode));
   } catch {}
-  // 兜底：无论还有没有挂住的 handle，3 秒内必定退出（状态已经落盘）
-  setTimeout(() => process.exit(0), 3000).unref();
+  // 兜底：无论还有没有挂住的 handle，3 秒内必定退出
+  setTimeout(() => process.exit(exitCode), 3000).unref();
 }
 
 process.once("SIGINT", shutdown);
 process.once("SIGTERM", shutdown);
 
-// 把上次运行残留的房间接回来（挂机房间不能因为一次发布重启就消失）
+// 把上次运行残留的公共建筑记录与战斗房间接回来。
+ensureVillageBuildings();
+reconcileVillageBuildings({ persist: true, broadcast: false });
 restoreBattleRooms();
 
 httpServer.listen(port, host, () => {
